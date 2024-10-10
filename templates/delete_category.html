@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 class="text-center">Delete Category or Subcategory</h2>
+
+{% with messages = get_flashed_messages() %}
+  {% if messages %}
+    <div class="alert alert-success">
+      {% for message in messages %}
+        <p>{{ message }}</p>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endwith %}
+
+<form method="POST" action="{{ url_for('delete_category') }}">
+  <div class="mb-3">
+    <label for="category_id" class="form-label">Select Category</label>
+    <select class="form-select" id="category_id" name="category_id" required>
+      <option value="">Choose a category...</option>
+      {% for category in categories %}
+        <option value="{{ category.id }}">{{ category.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="mb-3">
+    <label for="subcategory_id" class="form-label">Select Subcategory (optional)</label>
+    <select class="form-select" id="subcategory_id" name="subcategory_id">
+      <option value="">Choose a subcategory...</option>
+    </select>
+  </div>
+  <button type="submit" class="btn btn-danger">Delete</button>
+  <a href="{{ url_for('log_waste') }}" class="btn btn-secondary">Cancel</a>
+</form>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const categorySelect = document.getElementById('category_id');
+  const subcategorySelect = document.getElementById('subcategory_id');
+
+  categorySelect.addEventListener('change', function() {
+    const categoryId = this.value;
+    subcategorySelect.innerHTML = '<option value="">Choose a subcategory...</option>';
+    subcategorySelect.disabled = !categoryId;
+    
+    if (categoryId) {
+      fetch(`/get-subcategories/${categoryId}`)
+        .then(response => response.json())
+        .then(data => {
+          data.forEach(subcategory => {
+            const option = document.createElement('option');
+            option.value = subcategory.id;
+            option.textContent = subcategory.name;
+            subcategorySelect.appendChild(option);
+          });
+        });
+    }
+  });
+
+  // Initialize subcategory select state
+  subcategorySelect.disabled = !categorySelect.value;
+});
+</script>
+{% endblock %}

@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block content %}
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <h2 class="text-center">Add New Category</h2>
+            {% with messages = get_flashed_messages() %}
+            {% if messages %}
+            <div class="alert alert-success">
+                {% for message in messages %}
+                <p>{{ message }}</p>
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% endwith %}
+            <form method="POST" action="{{ url_for('add_category') }}" id="categoryForm">
+                <div class="mb-3">
+                    <label for="category_name" class="form-label">Category Name</label>
+                    <input type="text" class="form-control" id="category_name" name="category_name" required>
+                </div>
+                <div id="subcategories">
+                    <div class="mb-3">
+                        <label for="subcategory1" class="form-label">Subcategory 1</label>
+                        <input type="text" class="form-control" name="subcategories[]" required>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-secondary mb-3" id="addSubcategory">Add Subcategory</button>
+                <div class="d-flex justify-content-between">
+                    <button type="submit" class="btn btn-primary">Add Category</button>
+                    <a href="{{ url_for('log_waste') }}" class="btn btn-secondary">Back to Log Waste</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('addSubcategory').addEventListener('click', function() {
+            var subcategoriesDiv = document.getElementById('subcategories');
+            var newSubcategoryDiv = document.createElement('div');
+            newSubcategoryDiv.className = 'mb-3';
+            var newSubcategoryNumber = subcategoriesDiv.children.length + 1;
+            newSubcategoryDiv.innerHTML = `
+                <label for="subcategory${newSubcategoryNumber}" class="form-label">Subcategory ${newSubcategoryNumber}</label>
+                <input type="text" class="form-control" name="subcategories[]" required>
+            `;
+            subcategoriesDiv.appendChild(newSubcategoryDiv);
+        });
+    </script>
+{% endblock %}
