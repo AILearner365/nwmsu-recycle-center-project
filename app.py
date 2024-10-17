@@ -6,6 +6,7 @@ from io import BytesIO
 from dateutil.parser import parse
 from sqlalchemy.orm import joinedload
 from sqlalchemy import text
+from datetime import datetime
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'
@@ -85,18 +86,18 @@ def log_waste():
     user_id = flask_session['user_id']
     
     if request.method == 'GET':
-        selected_date = request.args.get('date_view') or flask_session.get('selected_date')
-        if selected_date:
+        selected_date = request.args.get('date_view') or flask_session.get('selected_date') or datetime.today().date()
+        
+        if isinstance(selected_date, str):
             selected_date = parse(selected_date).date()
-            existing_record_query = text("SELECT * FROM waste_records_new WHERE user_id = :user_id AND date_collected = :date_collected")
-            existing_record = db_session.execute(existing_record_query, {'user_id': user_id, 'date_collected': selected_date}).fetchone()
-            flask_session['selected_date'] = selected_date.isoformat()
-            
-            categories = db_session.query(Category).filter_by(parent_id=None).options(joinedload(Category.children)).all()
-            
-            return render_template('log_waste.html', show_form=True, selected_date=selected_date, record=existing_record, categories=categories)
-        else:
-            return render_template('log_waste.html', show_form=False)
+
+        existing_record_query = text("SELECT * FROM waste_records_new WHERE user_id = :user_id AND date_collected = :date_collected")
+        existing_record = db_session.execute(existing_record_query, {'user_id': user_id, 'date_collected': selected_date}).fetchone()
+        flask_session['selected_date'] = selected_date.isoformat()
+        
+        categories = db_session.query(Category).filter_by(parent_id=None).options(joinedload(Category.children)).all()
+        
+        return render_template('log_waste.html', show_form=True, selected_date=selected_date, record=existing_record, categories=categories)
     
     elif request.method == 'POST':
         selected_date = parse(request.form['selected_date']).date()
