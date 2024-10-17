@@ -2,16 +2,16 @@
 
 {% block content %}
 <div class="container">
-    <h2 class="text-center mb-4">View Data by Date</h2>
+    <h2 class="text-center mb-4">Compost & Recycling Waste Data</h2>
     <form method="GET" action="/log-waste" class="mb-4" id="date_form">
         <div class="mb-3">
-            <label for="date_view" class="form-label">Select Date</label>
+            <label for="date_view" class="form-label"><h5>Select Date</h5></label>
             <input type="date" class="form-control" id="date_view" name="date_view" value="{{ request.args.get('date_view', '') or selected_date }}" required>
         </div>
         <!-- <button type="submit" class="btn btn-secondary">View Data</button> -->
     </form>
     {% if show_form %}
-    <h2 class="mt-4 mb-3" style="font-size: 1.5rem;">Log Waste Data for {{ selected_date }}</h2>
+    <h2 class="mt-4 mb-3" style="font-size: 1.5rem;">Compost & Recycling Log for {{ selected_date }}</h2>
     {% with messages = get_flashed_messages() %}
     {% if messages %}
     <div class="flashes">
