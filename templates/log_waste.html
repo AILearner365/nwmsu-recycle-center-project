@@ -3,12 +3,12 @@
 {% block content %}
 <div class="container">
     <h2 class="text-center mb-4">View Data by Date</h2>
-    <form method="GET" action="/log-waste" class="mb-4">
+    <form method="GET" action="/log-waste" class="mb-4" id="date_form">
         <div class="mb-3">
             <label for="date_view" class="form-label">Select Date</label>
             <input type="date" class="form-control" id="date_view" name="date_view" value="{{ request.args.get('date_view', '') or selected_date }}" required>
         </div>
-        <button type="submit" class="btn btn-secondary">View Data</button>
+        <!-- <button type="submit" class="btn btn-secondary">View Data</button> -->
     </form>
     {% if show_form %}
     <h2 class="mt-4 mb-3" style="font-size: 1.5rem;">Log Waste Data for {{ selected_date }}</h2>
@@ -66,13 +66,20 @@
     </form>
     {% endif %}
 
-    <script>
-        // Get today's date in 'YYYY-MM-DD' format
-        const today = new Date().toISOString().split('T')[0];
-        
-        // Set the max attribute of the date input field
-        document.getElementById('date_view').setAttribute('max', today);
-    </script>
+    <!-- JavaScript to auto-submit the form when the date is changed -->
+<script>
+    // Get today's date in 'YYYY-MM-DD' format
+    const today = new Date().toISOString().split('T')[0];
+    
+    // Set the max attribute of the date input field
+    const dateInput = document.getElementById('date_view');
+    dateInput.setAttribute('max', today);
+
+    // Add an event listener to auto-submit the form when the date changes
+    dateInput.addEventListener('change', function() {
+        document.getElementById('date_form').submit();
+    });
+</script>
 </div>
 {% endblock %}
 
