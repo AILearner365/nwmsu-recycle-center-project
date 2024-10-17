@@ -91,7 +91,7 @@ def log_waste():
         if isinstance(selected_date, str):
             selected_date = parse(selected_date).date()
 
-        existing_record_query = text("SELECT * FROM waste_records_new WHERE user_id = :user_id AND date_collected = :date_collected")
+        existing_record_query = text("SELECT * FROM waste_records WHERE user_id = :user_id AND date_collected = :date_collected")
         existing_record = db_session.execute(existing_record_query, {'user_id': user_id, 'date_collected': selected_date}).fetchone()
         flask_session['selected_date'] = selected_date.isoformat()
         
@@ -119,13 +119,13 @@ def log_waste():
             # Update existing record
             # for key, value in data.items():
             #     setattr(existing_record, key, value)
-            update_query = f"UPDATE waste_records_new SET {', '.join([f'{key} = :{key}' for key in data.keys()])} WHERE user_id = :user_id AND date_collected = :date_collected"
+            update_query = f"UPDATE waste_records SET {', '.join([f'{key} = :{key}' for key in data.keys()])} WHERE user_id = :user_id AND date_collected = :date_collected"
             db_session.execute(text(update_query), {**data, 'user_id': user_id, 'date_collected': selected_date})
             flash("Waste data updated successfully!")
         else:
             # Insert new record
           #  new_record = WasteRecord(date_collected=selected_date, user_id=user_id, **data)
-            insert_query = f"INSERT INTO waste_records_new (user_id, date_collected, {', '.join(data.keys())}) VALUES (:user_id, :date_collected, {', '.join([f':{key}' for key in data.keys()])})"
+            insert_query = f"INSERT INTO waste_records (user_id, date_collected, {', '.join(data.keys())}) VALUES (:user_id, :date_collected, {', '.join([f':{key}' for key in data.keys()])})"
             db_session.execute(text(insert_query), {**data, 'user_id': user_id, 'date_collected': selected_date})
                
           #  db_session.add(new_record)
