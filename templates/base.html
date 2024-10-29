@@ -22,9 +22,12 @@
                         <a class="nav-link" href="/log-waste">Log Waste</a>
                     </li>
                     {% if session['role'] == 'admin' %}
-                    <!--<li class="nav-item">
-                        <a class="nav-link" href="/add-category">Add Category</a>
-                    </li>-->
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('add_category') }}">Add Category</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('delete_category') }}">Delete Category</a>
+                    </li>
                     <li class="nav-item">
                         <a class="nav-link" href="/manage-users">Manage Users</a>
                     </li>
@@ -58,4 +61,4 @@
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
 </body>
-</html
+</html>

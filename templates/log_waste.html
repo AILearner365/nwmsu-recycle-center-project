@@ -8,7 +8,6 @@
             <label for="date_view" class="form-label"><h5>Select Date</h5></label>
             <input type="date" class="form-control" id="date_view" name="date_view" value="{{ request.args.get('date_view', '') or selected_date }}" required>
         </div>
-        <!-- <button type="submit" class="btn btn-secondary">View Data</button> -->
     </form>
     {% if show_form %}
     <h2 class="mt-4 mb-3" style="font-size: 1.5rem;">Compost & Recycling Log for {{ selected_date }}</h2>
@@ -50,7 +49,6 @@
                             {% endfor %}
                         {% endfor %}
                     {% else %}
-                        <!-- Display a message if no categories exist -->
                         <tr>
                             <td colspan="3" class="text-center">No categories or waste data available for this date.</td>
                         </tr>
@@ -59,27 +57,20 @@
             </table>
         </div>        
         <div class="d-flex justify-content-start mt-3">
-            <button type="submit" class="btn btn-primary me-2">Log Waste</button>
-            <a href="{{ url_for('add_category') }}" class="btn btn-secondary me-2">Add New Category</a>
-            <a href="{{ url_for('delete_category') }}" class="btn btn-danger">Delete Category</a>
+            <button type="submit" class="btn btn-primary">Log Waste</button>
         </div>
     </form>
     {% endif %}
 
     <!-- JavaScript to auto-submit the form when the date is changed -->
-<script>
-    // Get today's date in 'YYYY-MM-DD' format
-    const today = new Date().toISOString().split('T')[0];
-    
-    // Set the max attribute of the date input field
-    const dateInput = document.getElementById('date_view');
-    dateInput.setAttribute('max', today);
-
-    // Add an event listener to auto-submit the form when the date changes
-    dateInput.addEventListener('change', function() {
-        document.getElementById('date_form').submit();
-    });
-</script>
+    <script>
+        const today = new Date().toISOString().split('T')[0];
+        const dateInput = document.getElementById('date_view');
+        dateInput.setAttribute('max', today);
+        dateInput.addEventListener('change', function() {
+            document.getElementById('date_form').submit();
+        });
+    </script>
 </div>
 {% endblock %}
 
