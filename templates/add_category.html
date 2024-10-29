@@ -3,24 +3,32 @@
     <div class="row justify-content-center">
         <div class="col-md-6">
             <h2 class="text-center">Add New Category</h2>
-            {% with messages = get_flashed_messages() %}
+            {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
-            <div class="alert alert-success">
-                {% for message in messages %}
-                <p>{{ message }}</p>
+                {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">
+                    <p>{{ message }}</p>
+                </div>
                 {% endfor %}
-            </div>
             {% endif %}
             {% endwith %}
-            <form method="POST" action="{{ url_for('add_category') }}" id="categoryForm">
+            <form method="POST" action="{{ url_for('add_category') }}" id="categoryForm" onsubmit="return validateForm()">
                 <div class="mb-3">
                     <label for="category_name" class="form-label">Category Name</label>
                     <input type="text" class="form-control" id="category_name" name="category_name" required>
+                    <div id="categoryNameError" class="invalid-feedback" style="display: none;">
+                        Category Name is invalid. Only letters and numbers are allowed.
+                    </div>
+                    <small class="form-text text-muted">Only letters and numbers are allowed (no spaces or special characters)</small>
                 </div>
                 <div id="subcategories">
                     <div class="mb-3">
                         <label for="subcategory1" class="form-label">Subcategory 1</label>
-                        <input type="text" class="form-control" name="subcategories[]" required>
+                        <input type="text" class="form-control subcategory-input" name="subcategories[]" required>
+                        <div class="invalid-feedback">
+                            Subcategory Name is invalid. Only letters and numbers are allowed.
+                        </div>
+                        <small class="form-text text-muted">Only letters and numbers are allowed (no spaces or special characters)</small>
                     </div>
                 </div>
                 <button type="button" class="btn btn-secondary mb-3" id="addSubcategory">Add Subcategory</button>
@@ -33,6 +41,56 @@
     </div>
 
     <script>
+        function isValidName(name) {
+            // Allow only letters and numbers
+            const regex = /^[a-zA-Z0-9]+$/;
+            return regex.test(name);
+        }
+
+        // Real-time validation for inputs
+        document.getElementById('category_name').addEventListener('input', function() {
+            const isValid = isValidName(this.value);
+            this.classList.toggle('is-invalid', !isValid);
+            document.getElementById('categoryNameError').style.display = isValid ? 'none' : 'block';
+        });
+
+        // Add real-time validation for subcategory inputs
+        document.addEventListener('input', function(e) {
+            if (e.target.classList.contains('subcategory-input')) {
+                const isValid = isValidName(e.target.value);
+                e.target.classList.toggle('is-invalid', !isValid);
+            }
+        });
+
+        function validateForm() {
+            let isValid = true;
+            const categoryName = document.getElementById('category_name').value;
+            const categoryNameError = document.getElementById('categoryNameError');
+            
+            // Validate category name
+            if (!isValidName(categoryName)) {
+                categoryNameError.style.display = 'block';
+                document.getElementById('category_name').classList.add('is-invalid');
+                isValid = false;
+            } else {
+                categoryNameError.style.display = 'none';
+                document.getElementById('category_name').classList.remove('is-invalid');
+            }
+
+            // Validate all subcategories
+            const subcategoryInputs = document.getElementsByClassName('subcategory-input');
+            for (let input of subcategoryInputs) {
+                if (!isValidName(input.value)) {
+                    input.classList.add('is-invalid');
+                    isValid = false;
+                } else {
+                    input.classList.remove('is-invalid');
+                }
+            }
+
+            return isValid;
+        }
+
         document.getElementById('addSubcategory').addEventListener('click', function() {
             var subcategoriesDiv = document.getElementById('subcategories');
             var newSubcategoryDiv = document.createElement('div');
@@ -40,7 +98,11 @@
             var newSubcategoryNumber = subcategoriesDiv.children.length + 1;
             newSubcategoryDiv.innerHTML = `
                 <label for="subcategory${newSubcategoryNumber}" class="form-label">Subcategory ${newSubcategoryNumber}</label>
-                <input type="text" class="form-control" name="subcategories[]" required>
+                <input type="text" class="form-control subcategory-input" name="subcategories[]" required>
+                <div class="invalid-feedback">
+                    Subcategory Name is invalid. Only letters and numbers are allowed.
+                </div>
+                <small class="form-text text-muted">Only letters and numbers are allowed (no spaces or special characters)</small>
             `;
             subcategoriesDiv.appendChild(newSubcategoryDiv);
         });

@@ -7,6 +7,7 @@ from dateutil.parser import parse
 from sqlalchemy.orm import joinedload
 from sqlalchemy import text
 from datetime import datetime
+import re
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'
@@ -178,7 +179,14 @@ def generate_report():
 
     return render_template('generate_report.html')
 
-# Route to add new category
+
+
+def is_valid_name(name):
+    """Validate if the name contains only allowed characters (letters and numbers)."""
+    # Allow only letters and numbers
+    pattern = r'^[a-zA-Z0-9]+$'
+    return bool(re.match(pattern, name))
+
 @app.route('/add-category', methods=['GET', 'POST'])
 def add_category():
     if 'user_id' not in flask_session:
@@ -187,10 +195,21 @@ def add_category():
     if request.method == 'POST':
         category_name = request.form.get('category_name')
         subcategories = request.form.getlist('subcategories[]')
-        category_name = category_name.strip()  # Remove leading/trailing spaces
+        
+        # Don't strip spaces as they're not allowed in the new validation
+        
+        # Validate category name
+        if not is_valid_name(category_name):
+            flash("Category Name is invalid. Only letters and numbers are allowed.", "danger")
+            return render_template('add_category.html')
+
+        # Validate subcategories
+        for subcategory in subcategories:
+            if not is_valid_name(subcategory):
+                flash("Subcategory names are invalid. Only letters and numbers are allowed.", "danger")
+                return render_template('add_category.html')
 
         if category_name and subcategories:
-            
             existing_category_name = db_session.query(Category).filter(Category.name.ilike(category_name)).first()
             if not existing_category_name:
                 new_category = Category(name=category_name)
@@ -198,12 +217,15 @@ def add_category():
                 db_session.flush()  # This assigns an ID to new_category
             else:
                 new_category = existing_category_name
+            
             for subcategory in subcategories:
-                subcategory = subcategory.strip()  # Remove leading/trailing spaces
-
                 if subcategory:  # Only add non-empty subcategories
                     # Check if the subcategory already exists
-                    existing_subcategory = db_session.query(Category).filter(Category.name.ilike(subcategory),Category.parent_id == new_category.id).first()
+                    existing_subcategory = db_session.query(Category).filter(
+                        Category.name.ilike(subcategory),
+                        Category.parent_id == new_category.id
+                    ).first()
+                    
                     if not existing_subcategory:
                         new_subcategory = Category(name=subcategory, parent_id=new_category.id)
                         db_session.add(new_subcategory)
@@ -211,10 +233,11 @@ def add_category():
                         # Add a new column to the waste_records table for each subcategory
                         add_new_column(db_session, category_name + "_" + subcategory)
                     else:
-                        flash("Subcategories already existed!")
+                        flash("Subcategories already existed!", "warning")
                         return render_template('add_category.html')
+                        
             db_session.commit()
-            flash("Category and subcategories added successfully!")
+            flash("Category and subcategories added successfully!", "success")
         
         # Redirect back to log-waste with the stored date
         return redirect(url_for('log_waste', date_view=flask_session.get('selected_date')))
