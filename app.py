@@ -47,30 +47,50 @@ def login():
 # Route to manage users (only for admin)
 @app.route('/manage-users', methods=['GET', 'POST'])
 def manage_users():
-    if 'user_id' not in flask_session or flask_session['role'] != 'admin':
-        return redirect('/')
-
-    users = db_session.query(User).all()
+    # Ensure only admin users can access this route
+    if 'role' not in flask_session or flask_session['role'] != 'admin':
+        flash("You do not have permission to access this page.", "danger")
+        return redirect(url_for('login'))
 
     if request.method == 'POST':
+        # Adding a user
         if 'add_user' in request.form:
             username = request.form['username']
             password = request.form['password'].encode('utf-8')
             role = request.form['role']
-            hashed_password = bcrypt.hashpw(password, bcrypt.gensalt())
-            new_user = User(username=username, password=hashed_password.decode('utf-8'), role=role)
-            db_session.add(new_user)
-            db_session.commit()
-            flash("User added successfully!")
 
-        if 'delete_user' in request.form:
+            # Check for existing user
+            existing_user = db_session.query(User).filter_by(username=username).first()
+            if existing_user:
+                flash("Username already exists!", "danger")
+            else:
+                hashed_password = bcrypt.hashpw(password, bcrypt.gensalt())
+                new_user = User(username=username, password=hashed_password.decode('utf-8'), role=role)
+                db_session.add(new_user)
+                try:
+                    db_session.commit()
+                    flash("User added successfully!", "success")
+                except Exception as e:
+                    flash(f"An error occurred: {e}", "danger")
+                    db_session.rollback()
+
+        # Deleting a user
+        elif 'delete_user' in request.form:
             user_id = request.form['user_id']
-            user_to_delete = db_session.query(User).filter_by(id=user_id).first()
-            if user_to_delete.username != 'admin':  # Prevent deleting the admin
+            user_to_delete = db_session.query(User).get(user_id)
+            if user_to_delete:
                 db_session.delete(user_to_delete)
-                db_session.commit()
-                flash("User deleted successfully!")
+                try:
+                    db_session.commit()
+                    flash("User deleted successfully!", "success")
+                except Exception as e:
+                    flash(f"An error occurred: {e}", "danger")
+                    db_session.rollback()
+            else:
+                flash("User not found.", "danger")
 
+    # Query for users to display in the management page
+    users = db_session.query(User).all()
     return render_template('manage_users.html', users=users)
   
 # Add this custom filter
@@ -287,6 +307,148 @@ def delete_category():
 def get_subcategories(category_id):
     subcategories = db_session.query(Category).filter_by(parent_id=category_id).all()
     return jsonify([{'id': sub.id, 'name': sub.name} for sub in subcategories])
+
+
+#Code for revenue report and landfill report plus adding entries to the database
+
+@app.route('/generate-landfill-expense-report', methods=['GET', 'POST'])
+def generate_landfill_expense_report():
+    if 'role' not in flask_session or flask_session['role'] != 'admin':
+        flash("You do not have permission to access this page.", "danger")
+        return redirect(url_for('login'))
+
+    if request.method == 'POST':
+        start_date = request.form['start_date']
+        end_date = request.form['end_date']
+
+        # Query landfill expense records within the date range
+        expense_records = db_session.query(LandfillExpense).filter(
+            LandfillExpense.landfill_date.between(start_date, end_date)
+        ).all()
+
+        # Prepare data for summary
+        total_expense = sum(record.expense for record in expense_records)
+        expense_data = [{
+            'Landfill Date': record.landfill_date,
+            'Weight (lbs)': record.weight,
+            'Expense (USD)': record.expense,
+            'Hauler': record.hauler
+        } for record in expense_records]
+
+        # Optional: Generate Excel file
+        if request.form.get('export') == 'excel':
+            df = pd.DataFrame(expense_data)
+            output = BytesIO()
+            with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+                df.to_excel(writer, index=False, sheet_name='Landfill Expense Report')
+            output.seek(0)
+            return send_file(output, mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                             as_attachment=True, download_name="Landfill_Expense_Report.xlsx")
+        
+        return render_template('landfill_expense_report.html', total_expense=total_expense, expense_data=expense_data)
+
+    return render_template('generate_landfill_expense_report.html')
+
+
+@app.route('/generate-recycling-revenue-report', methods=['GET', 'POST'])
+def generate_recycling_revenue_report():
+    if 'role' not in flask_session or flask_session['role'] != 'admin':
+        flash("You do not have permission to access this page.", "danger")
+        return redirect(url_for('login'))
+
+    if request.method == 'POST':
+        start_date = request.form['start_date']
+        end_date = request.form['end_date']
+
+        # Query recycling revenue records within the date range
+        revenue_records = db_session.query(RecyclingRevenue).filter(
+            RecyclingRevenue.sale_date.between(start_date, end_date)
+        ).all()
+
+        # Prepare data for summary
+        total_revenue = sum(record.revenue for record in revenue_records)
+        revenue_data = [{
+            'Sale Date': record.sale_date,
+            'Material Type': record.material_type,
+            'Weight (lbs)': record.weight,
+            'Revenue (USD)': record.revenue,
+            'Buyer': record.buyer
+        } for record in revenue_records]
+
+        # Optional: Generate Excel file
+        if request.form.get('export') == 'excel':
+            df = pd.DataFrame(revenue_data)
+            output = BytesIO()
+            with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+                df.to_excel(writer, index=False, sheet_name='Recycling Revenue Report')
+            output.seek(0)
+            return send_file(output, mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                             as_attachment=True, download_name="Recycling_Revenue_Report.xlsx")
+        
+        return render_template('recycling_revenue_report.html', total_revenue=total_revenue, revenue_data=revenue_data)
+
+    return render_template('generate_recycling_revenue_report.html')
+
+@app.route('/add-landfill-expense', methods=['GET', 'POST'])
+def add_landfill_expense():
+    if 'role' not in flask_session or flask_session['role'] != 'admin':
+        flash("You do not have permission to access this page.", "danger")
+        return redirect(url_for('login'))
+    
+    if request.method == 'POST':
+        landfill_date = datetime.strptime(request.form['landfill_date'], '%Y-%m-%d')
+        weight = float(request.form['weight'])
+        expense = float(request.form['expense'])
+        hauler = request.form['hauler']
+        
+        # Add a new landfill expense record
+        new_expense = LandfillExpense(
+            landfill_date=landfill_date,
+            weight=weight,
+            expense=expense,
+            hauler=hauler
+        )
+        db_session.add(new_expense)
+        try:
+            db_session.commit()
+            flash("Landfill expense record added successfully!", "success")
+        except Exception as e:
+            flash(f"An error occurred: {e}", "danger")
+            db_session.rollback()
+    
+    return render_template('add_landfill_expense.html')
+
+
+@app.route('/add-recycling-revenue', methods=['GET', 'POST'])
+def add_recycling_revenue():
+    if 'role' not in flask_session or flask_session['role'] != 'admin':
+        flash("You do not have permission to access this page.", "danger")
+        return redirect(url_for('login'))
+    
+    if request.method == 'POST':
+        sale_date = datetime.strptime(request.form['sale_date'], '%Y-%m-%d')
+        material_type = request.form['material_type']
+        weight = float(request.form['weight'])
+        revenue = float(request.form['revenue'])
+        buyer = request.form['buyer']
+        
+        # Add a new recycling revenue record
+        new_revenue = RecyclingRevenue(
+            sale_date=sale_date,
+            material_type=material_type,
+            weight=weight,
+            revenue=revenue,
+            buyer=buyer
+        )
+        db_session.add(new_revenue)
+        try:
+            db_session.commit()
+            flash("Recycling revenue record added successfully!", "success")
+        except Exception as e:
+            flash(f"An error occurred: {e}", "danger")
+            db_session.rollback()
+    
+    return render_template('add_recycling_revenue.html')
 
 # Route for user logout
 @app.route('/logout')

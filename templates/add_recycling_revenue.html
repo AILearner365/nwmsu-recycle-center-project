@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2 class="text-center">Add Recycling Revenue</h2>
+
+<div class="container mt-4">
+    <form method="POST" action="{{ url_for('add_recycling_revenue') }}">
+        <div class="mb-3">
+            <label for="sale_date" class="form-label">Sale Date</label>
+            <input type="date" class="form-control" id="sale_date" name="sale_date" required>
+        </div>
+        <div class="mb-3">
+            <label for="material_type" class="form-label">Material Type</label>
+            <select class="form-select" id="material_type" name="material_type" required>
+                <option value="Aluminum">Aluminum</option>
+                <option value="Cardboard">Cardboard</option>
+                <option value="Glass">Glass</option>
+                <option value="Metal-Cans">Metal-Cans</option>
+                <option value="Metal-Scrap">Metal-Scrap</option>
+                <option value="Paper-Books">Paper-Books</option>
+                <option value="Paper-Mixed">Paper-Mixed</option>
+                <option value="Paper-Newspaper">Paper-Newspaper</option>
+                <option value="Paper-White">Paper-White</option>
+                <option value="Plastic-#1 PET">Plastic-#1 PET</option>
+                <option value="Plastic-#2 HDPE Colored">Plastic-#2 HDPE Colored</option>
+                <option value="Plastic-#2 HDPE Natural">Plastic-#2 HDPE Natural</option>
+            </select>
+        </div>
+        <div class="mb-3">
+            <label for="weight" class="form-label">Weight (lbs)</label>
+            <input type="number" step="0.01" class="form-control" id="weight" name="weight" required>
+        </div>
+        <div class="mb-3">
+            <label for="revenue" class="form-label">Revenue (USD)</label>
+            <input type="number" step="0.01" class="form-control" id="revenue" name="revenue" required>
+        </div>
+        <div class="mb-3">
+            <label for="buyer" class="form-label">Buyer (Company Name)</label>
+            <input type="text" class="form-control" id="buyer" name="buyer">
+        </div>
+        <button type="submit" class="btn btn-primary">Add Revenue Record</button>
+    </form>
+</div>
+{% endblock %}

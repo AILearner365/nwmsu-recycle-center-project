@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2 class="text-center">Generate Landfill Expense Report</h2>
+
+<div class="container mt-4">
+    <form method="POST" action="{{ url_for('generate_landfill_expense_report') }}">
+        <div class="mb-3">
+            <label for="start_date" class="form-label">Start Date</label>
+            <input type="date" class="form-control" id="start_date" name="start_date" required>
+        </div>
+        <div class="mb-3">
+            <label for="end_date" class="form-label">End Date</label>
+            <input type="date" class="form-control" id="end_date" name="end_date" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Generate Report</button>
+        <button type="submit" name="export" value="excel" class="btn btn-secondary">Download as Excel</button>
+    </form>
+</div>
+{% endblock %}
