@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, redirect, session as flask_session, flash, send_file, url_for, jsonify
-from database import add_new_column, session as db_session, User, WasteRecord, Category
+from database import add_new_column, db_session, User, WasteRecord, Category, delete_column
 import bcrypt
 import pandas as pd
 from io import BytesIO
@@ -246,42 +246,42 @@ def add_category():
     return render_template('add_category.html')
 
 # New route for deleting categories
-@app.route('/delete-category', methods=['GET', 'POST'])
+@app.route('/delete_category', methods=['POST'])
 def delete_category():
-    if 'user_id' not in flask_session:
-        return redirect('/')
+    category_id = request.form.get('category_id')
+    subcategory_id = request.form.get('subcategory_id')
+    
+    category = db_session.query(Category).get(category_id)
+    if category is None:
+        flash("Category not found.")
+        return redirect(url_for('delete_category'))
 
-    categories = db_session.query(Category).filter_by(parent_id=None).all()
-
-    if request.method == 'POST':
-        category_id = request.form.get('category_id')
-        subcategory_id = request.form.get('subcategory_id')
-
-        if subcategory_id:
-            subcategory = db_session.query(Category).get(subcategory_id)
-            if subcategory:
-                db_session.delete(subcategory)
-                db_session.commit()
-                flash("Subcategory deleted successfully!")
-            else:
-                flash("Subcategory not found!")
-        elif category_id:
-            category = db_session.query(Category).get(category_id)
-            if category:
-                # Delete subcategories
-                for subcategory in category.children:
-                    db_session.delete(subcategory)
-                
-                # Delete the main category
-                db_session.delete(category)
-                db_session.commit()
-                flash("Category and its subcategories deleted successfully!")
-            else:
-                flash("Category not found!")
+    if subcategory_id:
+        subcategory = db_session.query(Category).get(subcategory_id)
+        if subcategory:
+            column_name = (category.name + '_' + subcategory.name).replace(' ', '_')
+            db_session.delete(subcategory)
+            delete_column(db_session, column_name)  # Use db_session here
+            db_session.commit()
+            flash(f"Subcategory '{subcategory.name}' deleted successfully, along with its data.")
+    else:
+        for subcategory in category.children:
+            column_name = (category.name + '_' + subcategory.name).replace(' ', '_')
+            delete_column(db_session, column_name)  # Use db_session here
+            db_session.delete(subcategory)
         
-        return redirect(url_for('log_waste', date_view=flask_session.get('selected_date')))
+        db_session.delete(category)
+        db_session.commit()
+        flash(f"Category '{category.name}' and its subcategories deleted successfully.")
 
-    return render_template('delete_category.html', categories=categories)
+    return redirect(url_for('delete_category'))
+
+
+@app.route('/delete_category')
+def show_delete_category():
+    # Fetch only top-level categories (where parent_id is None)
+    categories = db_session.query(Category).filter(Category.parent_id == None).all()
+    return render_template('delete_Category.html', categories=categories)
 
 @app.route('/get-subcategories/<int:category_id>')
 def get_subcategories(category_id):
