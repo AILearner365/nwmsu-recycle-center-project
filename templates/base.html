@@ -6,13 +6,67 @@
     <title>{{ title }}</title>
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    {% block extra_styles %}{% endblock %}
+    <style>
+        /* Ensure the container takes the full height */
+        html, body {
+            height: 100%;
+        }
+        /* Flex layout to push footer to the bottom */
+        body {
+            display: flex;
+            flex-direction: column;
+        }
+        .container {
+            flex: 1;
+        }
+        /* Green color for the footer */
+        footer {
+            background-color: #006341; /* Green color matching the navbar */
+            color: white;
+            padding: 1rem;
+        }
+
+        /* Custom green navbar color */
+        .navbar-custom {
+            background-color: #006341; /* Green color for navbar */
+        }
+
+        /* Navigation bar link styling */
+        .navbar-nav .nav-link {
+            color: #FFFFFF !important; /* White color for visibility */
+            font-size: 1.2rem; /* Increase font size */
+        }
+
+        .navbar-nav .nav-link:hover {
+            color: #FFFFFF !important; /* White color on hover for contrast */
+            text-decoration: underline; /* Underline on hover */
+        }
+
+        .navbar-brand {
+            color: #FFFFFF !important; /* White color for brand */
+            font-size: 1.2rem; /* Slightly larger font for brand */
+        }
+
+        .navbar-brand:hover {
+            color: #FFFFFF !important; /* White on hover for brand */
+        }
+
+        .logo-image {
+            height: 50px; /* Adjust logo height as needed */
+            margin-right: 15px; /* Space between logo and site title */
+        }
+    </style>
 </head>
 <body>
-
     <!-- Navigation Bar -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <nav class="navbar navbar-expand-lg navbar-custom">
         <div class="container-fluid">
-            <a class="navbar-brand" href="/log-waste">Recycle Center</a>
+            <!-- Logo Image -->
+            <a href="/" class="navbar-brand">
+                <img src="{{ url_for('static', filename='images/bearcats_logo.png') }}" alt="Bearcats Are Green" class="logo-image">
+                Recycle Center
+            </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
@@ -52,11 +106,11 @@
     </div>
 
     <!-- Footer -->
-    <footer class="bg-dark text-center text-white mt-5">
-        <div class="container p-4">
+    <footer class="text-center">
+        <div class="container">
             <p>© 2024 Recycle Center</p>
         </div>
-    </footer>
+    </footer> 
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>

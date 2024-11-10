@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container">
+<div class="container mb-5"> <!-- Added mb-5 to add space at the bottom -->
     <h2 class="text-center mb-4">Compost & Recycling Waste Data</h2>
     <form method="GET" action="/log-waste" class="mb-4" id="date_form">
         <div class="mb-3">
@@ -10,7 +10,7 @@
         </div>
     </form>
     {% if show_form %}
-    <h2 class="mt-4 mb-3" style="font-size: 1.5rem;">Compost & Recycling Log for {{ selected_date }}</h2>
+    <h4 class="mt-4 mb-3" style="font-size: 1.5rem;">Compost & Recycling Log for {{ selected_date }}</h4>
     {% with messages = get_flashed_messages() %}
     {% if messages %}
     <div class="flashes">
@@ -24,11 +24,11 @@
         <input type="hidden" name="selected_date" value="{{ selected_date }}">
         <div class="table-responsive">
             <table class="table table-bordered table-hover">
-                <thead class="table-light">
+                <thead>
                     <tr>
-                        <th>Category</th>
-                        <th>Subcategory</th>
-                        <th>Weight (lbs)</th>
+                        <th class="table-header">Category</th>
+                        <th class="table-header">Subcategory</th>
+                        <th class="table-header">Weight (lbs)</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -56,8 +56,8 @@
                 </tbody>
             </table>
         </div>        
-        <div class="d-flex justify-content-start mt-3">
-            <button type="submit" class="btn btn-primary">Log Waste</button>
+        <div class="d-flex justify-content-center mt-3">
+            <button type="submit" class="btn log-waste-button">Log Waste</button>
         </div>
     </form>
     {% endif %}
@@ -71,58 +71,29 @@
             document.getElementById('date_form').submit();
         });
     </script>
-</div>
-{% endblock %}
 
-{% block extra_styles %}
-<style>
-    body {
-        font-family: 'Poppins', sans-serif;
-        background-color: #f8f9fa;
-        color: #333;
-    }
-    .container {
-        max-width: 900px;
-        margin: 2rem auto;
-        padding: 2rem;
-        background-color: #ffffff;
-        border-radius: 10px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    }
-    h2 {
-        color: #000000;
-        font-weight: bold; 
-        margin-bottom: 0.5rem;
-    }
-    .form-label {
-        color: #000000;
-        font-weight: 600;
-    }
-    .table {
-        background-color: #ffffff;
-    }
-    .table th {
-        background-color: #f1f3f5;
-        font-weight: 600;
-    }
-    .form-control {
-        border-radius: 5px;
-    }
-    .btn {
-        border-radius: 5px;
-        font-weight: 500;
-    }
-    .btn-primary {
-        background-color: #007bff;
-        border-color: #007bff;
-    }
-    .btn-secondary {
-        background-color: #6c757d;
-        border-color: #6c757d;
-    }
-    .btn-danger {
-        background-color: #dc3545;
-        border-color: #dc3545;
-    }
-</style>
+    <!-- Inline styles to style the table headers and button directly -->
+    <style>
+        .table thead th {
+            background-color: #228363; /* Green background for table headers */
+            color: #ffffff; /* White text color for table headers */
+            font-weight: 600;
+            font-size: 1.2rem; /* Increased font size */
+        }
+        
+        .log-waste-button {
+            font-size: 1.2rem; /* Increase font size */
+            padding: 0.5rem 1.5rem; /* Increase padding for a larger button */
+            background-color: #6c757d; /* Black background color */
+            color: #ffffff; /* White text color */
+            border: none; /* Remove border */
+            border-radius: 5px; /* Optional: add rounded corners */
+        }
+        
+        .log-waste-button:hover {
+            background-color: #333333; /* Darker shade on hover */
+            color: #ffffff;
+        }
+    </style>
+</div>
 {% endblock %}
