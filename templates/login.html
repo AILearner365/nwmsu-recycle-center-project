@@ -13,8 +13,26 @@
                 <label for="password" class="form-label">Password</label>
                 <input type="password" class="form-control" id="password" name="password" required>
             </div>
-            <button type="submit" class="btn btn-primary w-100">Login</button>
+            <!-- Center the button -->
+            <div class="d-flex justify-content-center">
+                <button type="submit" class="btn custom-login-button">Login</button>
+            </div>
         </form>
     </div>
 </div>
+
+<!-- Inline style for the custom login button color and size -->
+<style>
+    .custom-login-button {
+        background-color: #6c757d; /* Set background to #6c757d */
+        color: #ffffff; /* White text color */
+        border: none; /* Remove default border */
+        padding: 0.5rem 1.5rem; /* Adjust padding to match button size */
+        font-size: 1.1rem; /* Adjust font size */
+        border-radius: 5px; /* Match rounded corners */
+    }
+    .custom-login-button:hover {
+        background-color: #5a6268; /* Slightly darker shade on hover */
+    }
+</style>
 {% endblock %}

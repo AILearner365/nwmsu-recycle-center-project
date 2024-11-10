@@ -26,8 +26,11 @@
       <option value="">Choose a subcategory...</option>
     </select>
   </div>
-  <button type="submit" class="btn btn-danger">Delete</button>
-  <a href="{{ url_for('log_waste') }}" class="btn btn-secondary">Cancel</a>
+  <!-- Increased margin-top to push the buttons down -->
+  <div class="d-flex justify-content-center mt-5"> <!-- Changed mt-3 to mt-5 for more space -->
+    <button type="submit" class="btn btn-danger btn-wide me-2">Delete</button>
+    <a href="{{ url_for('log_waste') }}" class="btn btn-secondary btn-wide ms-2">Cancel</a>
+  </div>
 </form>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -55,4 +58,11 @@ document.addEventListener('DOMContentLoaded', function() {
   subcategorySelect.disabled = !categorySelect.value;
 });
 </script>
+
+<!-- Custom inline style to set a consistent button width -->
+<style>
+    .btn-wide {
+        width: 130px; /* Set a fixed width for the buttons */
+    }
+</style>
 {% endblock %}
