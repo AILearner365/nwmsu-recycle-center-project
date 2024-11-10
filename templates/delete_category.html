@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h2 class="text-center">Delete Category or Subcategory</h2>
+<h2 class="text-center" style="margin-bottom: 2rem;">Delete Category or Subcategory</h2>
 {% with messages = get_flashed_messages() %}
   {% if messages %}
     <div class="alert alert-success">
@@ -12,7 +12,7 @@
   {% endif %}
 {% endwith %}
 <form method="POST" action="{{ url_for('delete_category') }}">
-  <div class="mb-3">
+  <div class="mb-4" style="max-width: 690px; margin: 0 auto;">
     <label for="category_id" class="form-label fw-bold">Select Category</label>
     <select class="form-select" id="category_id" name="category_id" required>
       <option value="">Choose a category...</option>
@@ -21,16 +21,15 @@
       {% endfor %}
     </select>
   </div>
-  <div class="mb-3">
+  <div class="mb-4" style="max-width: 690px; margin: 0 auto;">
     <label for="subcategory_id" class="form-label fw-bold">Select Subcategory (optional)</label>
     <select class="form-select" id="subcategory_id" name="subcategory_id">
       <option value="">Choose a subcategory...</option>
     </select>
   </div>
-  <!-- Increased margin-top to push the buttons down -->
-  <div class="d-flex justify-content-center mt-5"> <!-- Changed mt-3 to mt-5 for more space -->
-    <button type="submit" class="btn btn-danger btn-wide me-2">Delete</button>
-    <a href="{{ url_for('log_waste') }}" class="btn btn-secondary btn-wide ms-2">Cancel</a>
+  <div class="d-flex justify-content-center mt-5">
+    <button type="submit" class="btn btn-danger me-2">Delete</button>
+    <a href="{{ url_for('log_waste') }}" class="btn btn-secondary ms-2">Cancel</a>
   </div>
 </form>
 <script>
@@ -55,15 +54,24 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
   });
-  // Initialize subcategory select state
   subcategorySelect.disabled = !categorySelect.value;
 });
 </script>
 
-<!-- Custom inline style to set a consistent button width -->
+<!-- Custom inline style to set consistent button width and increase dropdown width -->
 <style>
     .btn-wide {
         width: 130px; /* Set a fixed width for the buttons */
+    }
+    
+    /* Increase maximum width of dropdowns and center align */
+    .form-select {
+        max-width: 700px; /* Increased width for dropdowns */
+    }
+
+    /* Add additional space between the select fields */
+    .mb-4 {
+        margin-bottom: 2rem !important; /* Increase bottom margin to create space */
     }
 </style>
 {% endblock %}

@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container mb-5"> <!-- Added mb-5 to add space at the bottom -->
+<div class="container mb-5" style="max-width: 900px; margin: 0 auto;"> <!-- Added max-width to reduce the width and center align -->
     <h2 class="text-center mb-4">Compost & Recycling Waste Data</h2>
     <form method="GET" action="/log-waste" class="mb-4" id="date_form">
         <div class="mb-3">
