@@ -5,7 +5,7 @@
     <h2 class="text-center mb-4">Compost & Recycling Waste Data</h2>
     <form method="GET" action="/log-waste" class="mb-4" id="date_form">
         <div class="mb-3">
-            <h4 class="mb-2">Select Date</h4>
+            <h5 class="mb-2">Select Date</h5>
             <div class="d-flex align-items-center" style="max-width: 250px;">
                 <input type="date" class="form-control" id="date_view" name="date_view" 
                        value="{{ request.args.get('date_view', '') or selected_date }}" required>
@@ -16,7 +16,7 @@
         </div>
     </form>
     {% if show_form %}
-    <h4 class="mt-4 mb-3">Compost & Recycling Log for {{ selected_date }}</h4>
+    <h5 class="mt-4 mb-3">Compost & Recycling Log for {{ selected_date }}</h5>
     {% with messages = get_flashed_messages() %}
     {% if messages %}
     <div class="flashes">
