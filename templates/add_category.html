@@ -14,7 +14,7 @@
             {% endwith %}
             <form method="POST" action="{{ url_for('add_category') }}" id="categoryForm" onsubmit="return validateForm()">
                 <div class="mb-3">
-                    <label for="category_name" class="form-label">Category Name</label>
+                    <label for="category_name" class="form-label fw-bold">Category Name</label>
                     <input type="text" class="form-control" id="category_name" name="category_name" required>
                     <div id="categoryNameError" class="invalid-feedback" style="display: none;">
                         Category Name is invalid. Only letters and numbers are allowed.
@@ -23,7 +23,7 @@
                 </div>
                 <div id="subcategories">
                     <div class="mb-3">
-                        <label for="subcategory1" class="form-label">Subcategory 1</label>
+                        <label for="subcategory1" class="form-label fw-bold">Subcategory 1</label>
                         <input type="text" class="form-control subcategory-input" name="subcategories[]" required>
                         <div class="invalid-feedback">
                             Subcategory Name is invalid. Only letters and numbers are allowed.
@@ -31,7 +31,7 @@
                         <small class="form-text text-muted">Only letters and numbers are allowed (no spaces or special characters)</small>
                     </div>
                 </div>
-                <button type="button" class="btn btn-secondary mb-3" id="addSubcategory">Add Subcategory</button>
+                <button type="button" class="btn btn-secondary btn-sm mb-3" id="addSubcategory">Add Subcategory</button>
                 <div class="d-flex justify-content-between">
                     <button type="submit" class="btn btn-primary">Add Category</button>
                     <a href="{{ url_for('log_waste') }}" class="btn btn-secondary">Back to Log Waste</a>
@@ -97,7 +97,7 @@
             newSubcategoryDiv.className = 'mb-3';
             var newSubcategoryNumber = subcategoriesDiv.children.length + 1;
             newSubcategoryDiv.innerHTML = `
-                <label for="subcategory${newSubcategoryNumber}" class="form-label">Subcategory ${newSubcategoryNumber}</label>
+                <label for="subcategory${newSubcategoryNumber}" class="form-label fw-bold">Subcategory ${newSubcategoryNumber}</label>
                 <input type="text" class="form-control subcategory-input" name="subcategories[]" required>
                 <div class="invalid-feedback">
                     Subcategory Name is invalid. Only letters and numbers are allowed.

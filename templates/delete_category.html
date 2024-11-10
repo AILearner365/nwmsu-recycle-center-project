@@ -1,7 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
 <h2 class="text-center">Delete Category or Subcategory</h2>
-
 {% with messages = get_flashed_messages() %}
   {% if messages %}
     <div class="alert alert-success">
@@ -11,10 +10,9 @@
     </div>
   {% endif %}
 {% endwith %}
-
 <form method="POST" action="{{ url_for('delete_category') }}">
   <div class="mb-3">
-    <label for="category_id" class="form-label">Select Category</label>
+    <label for="category_id" class="form-label fw-bold">Select Category</label>
     <select class="form-select" id="category_id" name="category_id" required>
       <option value="">Choose a category...</option>
       {% for category in categories %}
@@ -23,7 +21,7 @@
     </select>
   </div>
   <div class="mb-3">
-    <label for="subcategory_id" class="form-label">Select Subcategory (optional)</label>
+    <label for="subcategory_id" class="form-label fw-bold">Select Subcategory (optional)</label>
     <select class="form-select" id="subcategory_id" name="subcategory_id">
       <option value="">Choose a subcategory...</option>
     </select>
@@ -31,12 +29,10 @@
   <button type="submit" class="btn btn-danger">Delete</button>
   <a href="{{ url_for('log_waste') }}" class="btn btn-secondary">Cancel</a>
 </form>
-
 <script>
 document.addEventListener('DOMContentLoaded', function() {
   const categorySelect = document.getElementById('category_id');
   const subcategorySelect = document.getElementById('subcategory_id');
-
   categorySelect.addEventListener('change', function() {
     const categoryId = this.value;
     subcategorySelect.innerHTML = '<option value="">Choose a subcategory...</option>';
@@ -55,7 +51,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
   });
-
   // Initialize subcategory select state
   subcategorySelect.disabled = !categorySelect.value;
 });
