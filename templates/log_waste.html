@@ -5,12 +5,18 @@
     <h2 class="text-center mb-4">Compost & Recycling Waste Data</h2>
     <form method="GET" action="/log-waste" class="mb-4" id="date_form">
         <div class="mb-3">
-            <label for="date_view" class="form-label"><h5>Select Date</h5></label>
-            <input type="date" class="form-control" id="date_view" name="date_view" value="{{ request.args.get('date_view', '') or selected_date }}" required>
+            <h5 class="mb-2">Select Date</h5>
+            <div class="d-flex align-items-center" style="max-width: 250px;">
+                <input type="date" class="form-control" id="date_view" name="date_view" 
+                       value="{{ request.args.get('date_view', '') or selected_date }}" required>
+                <span class="input-group-text p-0" style="border: none; background: none;">
+                    <i class="fa fa-calendar" style="padding: 8px;"></i>
+                </span>
+            </div>
         </div>
     </form>
     {% if show_form %}
-    <h4 class="mt-4 mb-3" style="font-size: 1.5rem;">Compost & Recycling Log for {{ selected_date }}</h4>
+    <h5 class="mt-4 mb-3">Compost & Recycling Log for {{ selected_date }}</h5>
     {% with messages = get_flashed_messages() %}
     {% if messages %}
     <div class="flashes">
@@ -93,6 +99,12 @@
         .log-waste-button:hover {
             background-color: #333333; /* Darker shade on hover */
             color: #ffffff;
+        }
+        
+        .input-group-text {
+            padding: 0;
+            border: none;
+            background-color: transparent; /* Make the background transparent */
         }
     </style>
 </div>
