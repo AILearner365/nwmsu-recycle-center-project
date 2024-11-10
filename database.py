@@ -1,7 +1,6 @@
 from sqlalchemy import create_engine, Column, Integer, String, Date, ForeignKey, MetaData, text
 from sqlalchemy.orm import sessionmaker, relationship, declarative_base
 
-
 # Create the database engine
 engine = create_engine('sqlite:///recycle_center.db', connect_args={'timeout': 30})
 
@@ -26,7 +25,6 @@ class WasteRecord(Base):
     # Relationship to the User model
     user = relationship("User", back_populates="waste_records")
 
-
 # Category model
 class Category(Base):
     __tablename__ = 'categories'
@@ -44,21 +42,32 @@ User.waste_records = relationship("WasteRecord", order_by=WasteRecord.id, back_p
 # Create all tables
 Base.metadata.create_all(engine)
 
-
 # Create the session for interacting with the database
 Session = sessionmaker(bind=engine)
-session = Session()
+db_session = Session()  # Renamed to db_session for clarity
 
-def add_new_column(session, column_name):
-    # Reflect the existing database schema
+# Function to add a new column
+def add_new_column(db_session, column_name):
     metadata = MetaData()
     metadata.reflect(bind=engine)
     waste_records_table = metadata.tables['waste_records']
 
-    # Check if the column already exists to avoid duplication
     if column_name not in waste_records_table.columns:
-        # Add the new column with a default value of 0
-        session.execute(text(f'ALTER TABLE waste_records ADD COLUMN {column_name} FLOAT DEFAULT 0'))
+        db_session.execute(text(f'ALTER TABLE waste_records ADD COLUMN {column_name} FLOAT DEFAULT 0'))
+        db_session.commit()
         print(f"Column '{column_name}' added successfully.")
     else:
         print(f"Column '{column_name}' already exists.")
+
+# Function to delete a column
+def delete_column(db_session, column_name):
+    metadata = MetaData()
+    metadata.reflect(bind=engine)
+    waste_records_table = metadata.tables['waste_records']
+
+    if column_name in waste_records_table.columns:
+        db_session.execute(text(f'ALTER TABLE waste_records DROP COLUMN {column_name}'))
+        db_session.commit()
+        print(f"Column '{column_name}' deleted successfully.")
+    else:
+        print(f"Column '{column_name}' does not exist.")
