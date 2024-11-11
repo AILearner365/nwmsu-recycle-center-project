@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ title }}</title>
+    <title>{{ title | default("NWMSU Recycle Center")  }}</title>
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     {% block extra_styles %}{% endblock %}
@@ -24,48 +24,57 @@
         footer {
             background-color: #006341; /* Green color matching the navbar */
             color: white;
-            padding: 1rem;
+            padding: 0.5rem;
+            height: 60px; /* Set footer height */
         }
-
+    
         /* Custom green navbar color */
         .navbar-custom {
             background-color: #006341; /* Green color for navbar */
+            height: 65px; /* Set navbar height to match footer */
         }
-
-        /* Navigation bar link styling */
+    
+        /* Navigation bar link styling with larger font */
         .navbar-nav .nav-link {
             color: #FFFFFF !important; /* White color for visibility */
-            font-size: 1.2rem; /* Increase font size */
+            font-size: 1.2rem; /* Increase font size for better visibility */
+            padding: 0; /* Remove padding for compact alignment */
+            line-height: 50px; /* Align text vertically within navbar height */
         }
-
+    
         .navbar-nav .nav-link:hover {
             color: #FFFFFF !important; /* White color on hover for contrast */
             text-decoration: underline; /* Underline on hover */
         }
 
-        .navbar-brand {
-            color: #FFFFFF !important; /* White color for brand */
-            font-size: 1.2rem; /* Slightly larger font for brand */
+        /* Dropdown menu text styling */
+        .dropdown-menu .dropdown-item {
+            color: #006341; /* Green color for dropdown items */
         }
 
-        .navbar-brand:hover {
-            color: #FFFFFF !important; /* White on hover for brand */
+        .dropdown-menu .dropdown-item:hover {
+            background-color: #e9ecef; /* Light gray background on hover */
+            color: #006341; /* Keep green color on hover */
         }
 
         .logo-image {
-            height: 50px; /* Adjust logo height as needed */
-            margin-right: 15px; /* Space between logo and site title */
+            height: 40px; /* Adjust logo height to fit new header height */
+            margin-right: 10px; /* Space between logo and site title */
         }
     </style>
 </head>
 <body>
     <!-- Navigation Bar -->
-    <nav class="navbar navbar-expand-lg navbar-custom">
+    <nav class="navbar navbar-expand-lg navbar-custom flex-column align-items-center" style="padding-top: 5px; padding-bottom: 5px;">
+        <!-- Centered Branding 
+        <div class="navbar-brand-centered" style="font-size: 2rem;">
+            Recycle Center
+        </div>-->
+
         <div class="container-fluid">
             <!-- Logo Image -->
             <a href="/" class="navbar-brand">
-                <img src="{{ url_for('static', filename='images/bearcats_logo.png') }}" alt="Bearcats Are Green" class="logo-image">
-                Recycle Center
+                <img src="{{ url_for('static', filename='images/bearcats_logo.png') }}" alt="Bearcats Are Green" class="logo-image" style="height: 50px;">
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
@@ -83,10 +92,28 @@
                         <a class="nav-link" href="{{ url_for('delete_category') }}">Delete Category</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/manage-users">Manage Users</a>
+                        <a class="nav-link" href="{{ url_for('manage_users') }}">Manage Users</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="/generate-report">Generate Report</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="revenueDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            Recycling Revenue
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="revenueDropdown">
+                            <li><a class="dropdown-item" href="{{ url_for('add_recycling_revenue') }}">Add Revenue Record</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('generate_recycling_revenue_report') }}">Generate Revenue Report</a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="expenseDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            Landfill Expense
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="expenseDropdown">
+                            <li><a class="dropdown-item" href="{{ url_for('add_landfill_expense') }}">Add Expense Record</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('generate_landfill_expense_report') }}">Generate Expense Report</a></li>
+                        </ul>
                     </li>
                     {% endif %}
                 </ul>
@@ -106,11 +133,11 @@
     </div>
 
     <!-- Footer -->
-    <footer class="text-center">
+    <footer class="text-center d-flex align-items-center" style="height: 50px;">
         <div class="container">
-            <p>© 2024 Recycle Center</p>
+            <p style="margin: 0;">© 2024 Recycle Center | All Rights Reserved</p>
         </div>
-    </footer> 
+    </footer>
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
