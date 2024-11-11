@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-2 mb-3" style="max-width: 700px; margin: 0 auto;"> <!-- Reduced top margin -->
+    <h2 class="text-center mb-3" style="margin-top: 0;">Add Landfill Expense</h2> <!-- Removed default margin-top for heading -->
+
+    <form method="POST" action="{{ url_for('add_landfill_expense') }}">
+        <div class="mb-2"> <!-- Reduced margin-bottom for form fields -->
+            <label for="landfill_date" class="form-label fw-bold">Landfill Date</label>
+            <input type="date" class="form-control" id="landfill_date" name="landfill_date" required>
+        </div>
+        <div class="mb-2">
+            <label for="weight" class="form-label fw-bold">Weight (lbs)</label>
+            <input type="number" step="0.01" class="form-control" id="weight" name="weight" required>
+        </div>
+        <div class="mb-2">
+            <label for="expense" class="form-label fw-bold">Expense (USD)</label>
+            <input type="number" step="0.01" class="form-control" id="expense" name="expense" required>
+        </div>
+        <div class="mb-2">
+            <label for="hauler" class="form-label fw-bold">Landfill/Hauler (Company Name)</label>
+            <input type="text" class="form-control" id="hauler" name="hauler">
+        </div>
+        <div class="d-flex justify-content-center mt-4">
+            <button type="submit" class="btn btn-secondary btn-wide custom-button">Add Expense Record</button>
+        </div>
+    </form>
+
+    <!-- Custom inline style for consistent button width and form layout -->
+    <style>
+        .btn-wide {
+            width: 190px; /* Increased width to fit button text on one line */
+            font-size: 1.0rem;
+            padding: 0.4rem 1.3rem;
+            background-color: #6c757d;
+            color: #ffffff;
+            border: none;
+            border-radius: 5px;
+        }
+
+        .btn-wide:hover {
+            background-color: #5a6268; /* Darker shade on hover */
+        }
+
+        /* Center align and increase width of form controls */
+        .form-control {
+            max-width: 700px;
+        }
+
+        /* Add additional space between the form fields */
+        .mb-2 {
+            margin-bottom: 1.5rem !important; /* Adjusted bottom margin for spacing */
+        }
+    </style>
+</div>
+{% endblock %}

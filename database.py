@@ -1,5 +1,6 @@
 from sqlalchemy import create_engine, Column, Integer, String, Date, ForeignKey, MetaData, text
 from sqlalchemy.orm import sessionmaker, relationship, declarative_base
+from sqlalchemy import Float
 
 # Create the database engine
 engine = create_engine('sqlite:///recycle_center.db', connect_args={'timeout': 30})
@@ -36,10 +37,20 @@ class Category(Base):
     parent = relationship("Category", back_populates="children", remote_side=[id])
     children = relationship("Category", back_populates="parent")
 
+class RecyclingRevenue(Base):
+    __tablename__ = 'recycling_revenue'
+    id = Column(Integer, primary_key=True)
+    sale_date = Column(Date, nullable=False)
+    material_type = Column(String, nullable=False)
+    weight = Column(Float, nullable=False)
+    revenue = Column(Float, nullable=False)
+    buyer = Column(String)
+
+
 # Define the relationship between User and WasteRecord
 User.waste_records = relationship("WasteRecord", order_by=WasteRecord.id, back_populates="user")
 
-# Create all tables
+# Remember to create the table if it doesn’t exist
 Base.metadata.create_all(engine)
 
 # Create the session for interacting with the database
