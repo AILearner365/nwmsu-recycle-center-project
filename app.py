@@ -47,30 +47,50 @@ def login():
 # Route to manage users (only for admin)
 @app.route('/manage-users', methods=['GET', 'POST'])
 def manage_users():
-    if 'user_id' not in flask_session or flask_session['role'] != 'admin':
-        return redirect('/')
-
-    users = db_session.query(User).all()
+    # Ensure only admin users can access this route
+    if 'role' not in flask_session or flask_session['role'] != 'admin':
+        flash("You do not have permission to access this page.", "danger")
+        return redirect(url_for('login'))
 
     if request.method == 'POST':
+        # Adding a user
         if 'add_user' in request.form:
             username = request.form['username']
             password = request.form['password'].encode('utf-8')
             role = request.form['role']
-            hashed_password = bcrypt.hashpw(password, bcrypt.gensalt())
-            new_user = User(username=username, password=hashed_password.decode('utf-8'), role=role)
-            db_session.add(new_user)
-            db_session.commit()
-            flash("User added successfully!")
 
-        if 'delete_user' in request.form:
+            # Check for existing user
+            existing_user = db_session.query(User).filter_by(username=username).first()
+            if existing_user:
+                flash("Username already exists!", "danger")
+            else:
+                hashed_password = bcrypt.hashpw(password, bcrypt.gensalt())
+                new_user = User(username=username, password=hashed_password.decode('utf-8'), role=role)
+                db_session.add(new_user)
+                try:
+                    db_session.commit()
+                    flash("User added successfully!", "success")
+                except Exception as e:
+                    flash(f"An error occurred: {e}", "danger")
+                    db_session.rollback()
+
+        # Deleting a user
+        elif 'delete_user' in request.form:
             user_id = request.form['user_id']
-            user_to_delete = db_session.query(User).filter_by(id=user_id).first()
-            if user_to_delete.username != 'admin':  # Prevent deleting the admin
+            user_to_delete = db_session.query(User).get(user_id)
+            if user_to_delete:
                 db_session.delete(user_to_delete)
-                db_session.commit()
-                flash("User deleted successfully!")
+                try:
+                    db_session.commit()
+                    flash("User deleted successfully!", "success")
+                except Exception as e:
+                    flash(f"An error occurred: {e}", "danger")
+                    db_session.rollback()
+            else:
+                flash("User not found.", "danger")
 
+    # Query for users to display in the management page
+    users = db_session.query(User).all()
     return render_template('manage_users.html', users=users)
   
 # Add this custom filter
