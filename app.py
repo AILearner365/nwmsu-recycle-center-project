@@ -9,7 +9,7 @@ from sqlalchemy import text
 from sqlalchemy import inspect
 from datetime import datetime
 from sqlalchemy.sql import func  # Import func for date comparison
-
+from database import LandfillExpense
 from datetime import datetime
 import re
 
@@ -398,28 +398,54 @@ def add_landfill_expense():
         flash("You do not have permission to access this page.", "danger")
         return redirect(url_for('login'))
     
+    # Set today's date as the default for landfill_date
+    today_date = datetime.today().date()
+    
     if request.method == 'POST':
-        landfill_date = datetime.strptime(request.form['landfill_date'], '%Y-%m-%d')
-        weight = float(request.form['weight'])
-        expense = float(request.form['expense'])
+        # Get form values
+        landfill_date = datetime.strptime(request.form['landfill_date'], '%Y-%m-%d').date()
         hauler = request.form['hauler']
         
-        # Add a new landfill expense record
-        new_expense = LandfillExpense(
-            landfill_date=landfill_date,
-            weight=weight,
-            expense=expense,
-            hauler=hauler
-        )
-        db_session.add(new_expense)
+        # Convert Weight and Expense directly to float, assuming valid numeric input
+        weight = float(request.form['weight'])
+        expense = float(request.form['expense'])
+        
+        # Validate Hauler to ensure it is alphanumeric
+        if not re.match(r'^[a-zA-Z0-9 ]+$', hauler):
+            flash("Hauler name must be alphanumeric and cannot contain special characters.", "danger")
+            return render_template('add_landfill_expense.html', today_date=today_date)
+        
+        # Check for an existing record with the same date and hauler
+        existing_expense = db_session.query(LandfillExpense).filter(
+            func.date(LandfillExpense.landfill_date) == landfill_date,
+            LandfillExpense.hauler == hauler
+        ).first()
+        
+        if existing_expense:
+            # Update the existing record with the same hauler
+            existing_expense.weight = weight
+            existing_expense.expense = expense
+            flash("Landfill expense record updated successfully!", "success")
+        else:
+            # Add a new landfill expense record (different hauler or new entry)
+            new_expense = LandfillExpense(
+                landfill_date=landfill_date,
+                weight=weight,
+                expense=expense,
+                hauler=hauler
+            )
+            db_session.add(new_expense)
+            flash("Landfill expense record added successfully!", "success")
+        
+        # Commit the changes to the database
         try:
             db_session.commit()
-            flash("Landfill expense record added successfully!", "success")
+            return redirect(url_for('add_landfill_expense'))  # Redirect to refresh the form
         except Exception as e:
             flash(f"An error occurred: {e}", "danger")
             db_session.rollback()
     
-    return render_template('add_landfill_expense.html')
+    return render_template('add_landfill_expense.html', today_date=today_date)
 
 # Function to get relevant columns from waste_records table
 def get_material_type_columns():
@@ -436,28 +462,37 @@ def add_recycling_revenue():
     
     # Get material types from the columns in waste_records table
     material_columns = get_material_type_columns()
+    today_date = datetime.today().date()
     
     if request.method == 'POST':
+        # Get form values
         sale_date = datetime.strptime(request.form['sale_date'], '%Y-%m-%d').date()
         material_type = request.form['material_type']
-        weight = float(request.form['weight'])
-        revenue = float(request.form['revenue'])
         buyer = request.form['buyer']
         
-        # Check for an existing record with the same date and material type
+        # Convert Weight and Revenue directly to float, assuming valid numeric input
+        weight = float(request.form['weight'])
+        revenue = float(request.form['revenue'])
+        
+        # Validate Buyer to ensure it is alphanumeric
+        if not re.match(r'^[a-zA-Z0-9 ]+$', buyer):
+            flash("Buyer name must be alphanumeric and cannot contain special characters.", "danger")
+            return render_template('add_recycling_revenue.html', material_columns=material_columns, today_date=today_date)
+        
+        # Check for an existing record with the same date, material type, and buyer
         existing_record = db_session.query(RecyclingRevenue).filter(
             func.date(RecyclingRevenue.sale_date) == sale_date,
-            RecyclingRevenue.material_type == material_type
+            RecyclingRevenue.material_type == material_type,
+            RecyclingRevenue.buyer == buyer
         ).first()
         
         if existing_record:
-            # Update the existing record
+            # Update the existing record with the same buyer
             existing_record.weight = weight
             existing_record.revenue = revenue
-            existing_record.buyer = buyer
             flash("Recycling revenue record updated successfully!", "success")
         else:
-            # Add a new recycling revenue record
+            # Add a new recycling revenue record (different buyer or new entry)
             new_revenue = RecyclingRevenue(
                 sale_date=sale_date,
                 material_type=material_type,
@@ -476,9 +511,8 @@ def add_recycling_revenue():
             flash(f"An error occurred: {e}", "danger")
             db_session.rollback()
     
-    # Pass today's date to the template for default sale_date
-    today_date = datetime.today().date()
     return render_template('add_recycling_revenue.html', material_columns=material_columns, today_date=today_date)
+
 # Route for user logout
 @app.route('/logout')
 def logout():

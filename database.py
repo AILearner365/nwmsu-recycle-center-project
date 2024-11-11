@@ -46,7 +46,14 @@ class RecyclingRevenue(Base):
     revenue = Column(Float, nullable=False)
     buyer = Column(String)
 
-
+class LandfillExpense(Base):
+    __tablename__ = 'landfill_expenses'
+    id = Column(Integer, primary_key=True)
+    landfill_date = Column(Date, nullable=False)
+    weight = Column(Float, nullable=False)
+    expense = Column(Float, nullable=False)
+    hauler = Column(String, nullable=False)
+    
 # Define the relationship between User and WasteRecord
 User.waste_records = relationship("WasteRecord", order_by=WasteRecord.id, back_populates="user")
 
