@@ -1,21 +1,35 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container mt-2 mb-3" style="max-width: 700px; margin: 0 auto;"> <!-- Reduced top margin -->
-    <h2 class="text-center mb-3" style="margin-top: 0;">Add Landfill Expense</h2> <!-- Removed default margin-top for heading -->
+<div class="container mt-2 mb-3" style="max-width: 700px; margin: 0 auto; position: relative;">
+    <h2 class="text-center mb-3" style="margin-top: 0;">Add Landfill Expense</h2>
+
+    <!-- Flash message display positioned under the title and overlayed -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="alert-container">
+          {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+              {{ message }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
 
     <form method="POST" action="{{ url_for('add_landfill_expense') }}">
-        <div class="mb-2"> <!-- Reduced margin-bottom for form fields -->
+        <div class="mb-2">
             <label for="landfill_date" class="form-label fw-bold">Landfill Date</label>
-            <input type="date" class="form-control" id="landfill_date" name="landfill_date" required>
+            <input type="date" class="form-control" id="landfill_date" name="landfill_date" required value="{{ today_date }}">
         </div>
         <div class="mb-2">
             <label for="weight" class="form-label fw-bold">Weight (lbs)</label>
-            <input type="number" step="0.01" class="form-control" id="weight" name="weight" required>
+            <input type="text" class="form-control" id="weight" name="weight" required>
         </div>
         <div class="mb-2">
             <label for="expense" class="form-label fw-bold">Expense (USD)</label>
-            <input type="number" step="0.01" class="form-control" id="expense" name="expense" required>
+            <input type="text" class="form-control" id="expense" name="expense" required>
         </div>
         <div class="mb-2">
             <label for="hauler" class="form-label fw-bold">Landfill/Hauler (Company Name)</label>
@@ -26,10 +40,15 @@
         </div>
     </form>
 
-    <!-- Custom inline style for consistent button width and form layout -->
+    <!-- JavaScript to set the max date to today to prevent future date selection -->
+    <script>
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('landfill_date').setAttribute('max', today);
+    </script>
+
     <style>
         .btn-wide {
-            width: 190px; /* Increased width to fit button text on one line */
+            width: 190px;
             font-size: 1.0rem;
             padding: 0.4rem 1.3rem;
             background-color: #6c757d;
@@ -39,17 +58,36 @@
         }
 
         .btn-wide:hover {
-            background-color: #5a6268; /* Darker shade on hover */
+            background-color: #5a6268;
         }
 
-        /* Center align and increase width of form controls */
         .form-control {
             max-width: 700px;
         }
 
-        /* Add additional space between the form fields */
         .mb-2 {
-            margin-bottom: 1.5rem !important; /* Adjusted bottom margin for spacing */
+            margin-bottom: 1.5rem !important;
+        }
+
+        /* Absolute positioning for the alert to prevent layout shifting */
+        .alert-container {
+            position: absolute;
+            top: 40px; /* Adjust this value to control the vertical position */
+            right: 12px;
+            left: 75%; /* Adjusted from 50% to 55% to move slightly to the right */
+            transform: translateX(-50%);
+            z-index: 1000;
+            width: 100%;
+            max-width: 700px;
+            text-align: center;
+        }
+
+        .alert {
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+            margin-bottom: 0;
+            display: inline-block;
+            white-space: nowrap;
         }
     </style>
 </div>
