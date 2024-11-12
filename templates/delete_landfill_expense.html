@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-2 mb-3" style="max-width: 700px; margin: 0 auto; position: relative;">
+    <h2 class="text-center mb-4" style="margin-top: 0;">Delete Landfill Expense Record</h2>
+
+    <!-- Flash message display as absolute-positioned text in green, aligned with the form fields -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="message-overlay" style="color: green;"> <!-- Green-colored message overlay -->
+          {% for category, message in messages %}
+            <p>{{ message }}</p>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <form method="POST" action="{{ url_for('delete_landfill_expense') }}">
+      <!-- Landfill Date Field -->
+      <div class="mb-4 mt-5" style="max-width: 690px; margin: 0 auto;">
+        <label for="landfill_date" class="form-label fw-bold">Landfill Date</label>
+        <input type="date" class="form-control" id="landfill_date" name="landfill_date" required max="{{ current_date }}">
+      </div>
+
+      <!-- Hauler Dropdown Field -->
+      <div class="mb-4" style="max-width: 690px; margin: 0 auto;">
+        <label for="hauler_name" class="form-label fw-bold">Landfill/Hauler (Company Name)</label>
+        <select class="form-select" id="hauler_name" name="hauler_name" required>
+          <option value="">Choose a hauler...</option>
+          {% for hauler in haulers %}
+            <option value="{{ hauler }}">{{ hauler }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="d-flex justify-content-center mt-5">
+        <button type="submit" class="btn btn-danger me-2">Delete</button>
+        <a href="{{ url_for('log_waste') }}" class="btn btn-secondary ms-2">Cancel</a>
+      </div>
+    </form>
+
+    <script>
+        // JavaScript to set the max date to today to prevent future date selection
+        document.getElementById('landfill_date').setAttribute('max', new Date().toISOString().split('T')[0]);
+    </script>
+
+    <style>
+        /* Adjust the message alignment and add space between the header and message */
+        .message-overlay {
+            position: absolute;
+            top: 50px; /* Increased top value to add space between the header and message */
+            left: 0; /* Align the message with the left edge of the form container */
+            padding-left: 15px; /* Match padding with form field alignment */
+            width: 100%;
+            max-width: 690px; /* Match the width of the form fields */
+            font-size: 1rem;
+            font-weight: bold;
+            z-index: 1000;
+            text-align: left; /* Left-align the text */
+            white-space: nowrap;
+        }
+
+        .form-control, .form-select {
+            max-width: 100%;
+        }
+    </style>
+</div>
+{% endblock %}

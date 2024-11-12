@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-1 mb-3" style="max-width: 700px; margin: 0 auto; position: relative;">
+    <h2 class="text-center" style="margin-top: -10px; margin-bottom: 30px;">Delete Recycling Revenue Record</h2> <!-- Adjusted margin-top to move it up -->
+
+    <!-- Flash message display as plain green text, aligned with the form fields -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="message-overlay" style="color: green;"> <!-- Green-colored message overlay -->
+          {% for category, message in messages %}
+            <p>{{ message }}</p>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <form method="POST" action="{{ url_for('delete_recycling_revenue') }}">
+      <!-- Sale Date Field -->
+      <div class="mb-4" style="max-width: 690px; margin: 0 auto;">
+        <label for="sale_date" class="form-label fw-bold">Sale Date</label>
+        <input type="date" class="form-control" id="sale_date" name="sale_date" required max="{{ current_date }}">
+      </div>
+
+      <!-- Material Type Dropdown Field -->
+      <div class="mb-4" style="max-width: 690px; margin: 0 auto;">
+        <label for="material_type" class="form-label fw-bold">Material Type</label>
+        <select class="form-select" id="material_type" name="material_type" required>
+          <option value="">Choose a material type...</option>
+          {% for column in material_columns %}
+            <option value="{{ column }}">{{ column }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Buyer Dropdown Field -->
+      <div class="mb-4" style="max-width: 690px; margin: 0 auto;">
+        <label for="buyer" class="form-label fw-bold">Buyer</label>
+        <select class="form-select" id="buyer" name="buyer" required>
+          <option value="">Choose a buyer...</option>
+          {% for buyer in buyers %}
+            <option value="{{ buyer }}">{{ buyer }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="d-flex justify-content-center mt-5">
+        <button type="submit" class="btn btn-danger me-2">Delete</button>
+        <a href="{{ url_for('log_waste') }}" class="btn btn-secondary ms-2">Cancel</a>
+      </div>
+    </form>
+
+    <script>
+        // JavaScript to set the max date to today to prevent future date selection
+        document.getElementById('sale_date').setAttribute('max', new Date().toISOString().split('T')[0]);
+    </script>
+
+    <style>
+        /* Adjust the message alignment and style */
+        .message-overlay {
+            position: absolute;
+            top: 38px; /* Position slightly below the header */
+            left: 15px; /* Align with the form fields */
+            width: calc(100% - 30px); /* Width matching the form fields */
+            max-width: 690px;
+            font-size: 1rem;
+            font-weight: bold;
+            z-index: 1000;
+            text-align: left;
+            color: green; /* Set message color to green */
+        }
+    </style>
+</div>
+{% endblock %}

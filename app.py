@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, redirect, session as flask_session, flash, send_file, url_for, jsonify
-from database import add_new_column, db_session, User, WasteRecord, Category, delete_column, engine, RecyclingRevenue
+from database import add_new_column, db_session, User, WasteRecord, Category, delete_column, engine, RecyclingRevenue, LandfillExpense
 import bcrypt
 import pandas as pd
 from io import BytesIO
@@ -134,7 +134,6 @@ def log_waste():
                 try:
                     data[key] = float(value) if value else 0
                 except ValueError:
-                    # Handle non-numeric values (e.g., for any text fields you might add in the future)
                     data[key] = value
         
         # Check for existing record
@@ -142,24 +141,20 @@ def log_waste():
         
         if existing_record:
             # Update existing record
-            # for key, value in data.items():
-            #     setattr(existing_record, key, value)
             update_query = f"UPDATE waste_records SET {', '.join([f'{key} = :{key}' for key in data.keys()])} WHERE user_id = :user_id AND date_collected = :date_collected"
             db_session.execute(text(update_query), {**data, 'user_id': user_id, 'date_collected': selected_date})
-            flash("Waste data updated successfully!")
+            flash("Waste data updated successfully!", "success")
         else:
             # Insert new record
-          #  new_record = WasteRecord(date_collected=selected_date, user_id=user_id, **data)
             insert_query = f"INSERT INTO waste_records (user_id, date_collected, {', '.join(data.keys())}) VALUES (:user_id, :date_collected, {', '.join([f':{key}' for key in data.keys()])})"
             db_session.execute(text(insert_query), {**data, 'user_id': user_id, 'date_collected': selected_date})
-               
-          #  db_session.add(new_record)
-            flash("Waste data created successfully!")
+            flash("Waste data created successfully!", "success")
         
         db_session.commit()
         return redirect(url_for('log_waste', date_view=selected_date))
     
     return render_template('log_waste.html', show_form=False)
+
 
 # Route to generate a report
 @app.route('/generate-report', methods=['GET', 'POST'])
@@ -220,8 +215,6 @@ def add_category():
         category_name = request.form.get('category_name')
         subcategories = request.form.getlist('subcategories[]')
         
-        # Don't strip spaces as they're not allowed in the new validation
-        
         # Validate category name
         if not is_valid_name(category_name):
             flash("Category Name is invalid. Only letters and numbers are allowed.", "danger")
@@ -244,7 +237,6 @@ def add_category():
             
             for subcategory in subcategories:
                 if subcategory:  # Only add non-empty subcategories
-                    # Check if the subcategory already exists
                     existing_subcategory = db_session.query(Category).filter(
                         Category.name.ilike(subcategory),
                         Category.parent_id == new_category.id
@@ -262,11 +254,8 @@ def add_category():
                         
             db_session.commit()
             flash("Category and subcategories added successfully!", "success")
-        
-        # Redirect back to log-waste with the stored date
-        return redirect(url_for('log_waste', date_view=flask_session.get('selected_date')))
+            return render_template('add_category.html')  # Render the same page with the success message
 
-    # For GET requests, just render the add_category template
     return render_template('add_category.html')
 
 # New route for deleting categories
@@ -277,7 +266,7 @@ def delete_category():
     
     category = db_session.query(Category).get(category_id)
     if category is None:
-        flash("Category not found.")
+        flash("Category not found!")
         return redirect(url_for('delete_category'))
 
     if subcategory_id:
@@ -287,7 +276,7 @@ def delete_category():
             db_session.delete(subcategory)
             delete_column(db_session, column_name)  # Use db_session here
             db_session.commit()
-            flash(f"Subcategory '{subcategory.name}' deleted successfully, along with its data.")
+            flash(f"Subcategory '{subcategory.name}' deleted successfully!", "success")
     else:
         for subcategory in category.children:
             column_name = (category.name + '_' + subcategory.name).replace(' ', '_')
@@ -296,9 +285,10 @@ def delete_category():
         
         db_session.delete(category)
         db_session.commit()
-        flash(f"Category '{category.name}' and its subcategories deleted successfully.")
+        flash(f"Category '{category.name}' and its subcategories deleted successfully!", "success")
 
     return redirect(url_for('delete_category'))
+
 
 
 @app.route('/delete_category')
@@ -425,7 +415,7 @@ def add_landfill_expense():
             # Update the existing record with the same hauler
             existing_expense.weight = weight
             existing_expense.expense = expense
-            flash("Landfill expense record updated successfully!", "success")
+            flash("Landfill expenses updated successfully!", "success")
         else:
             # Add a new landfill expense record (different hauler or new entry)
             new_expense = LandfillExpense(
@@ -435,7 +425,7 @@ def add_landfill_expense():
                 hauler=hauler
             )
             db_session.add(new_expense)
-            flash("Landfill expense record added successfully!", "success")
+            flash("Landfill expenses added successfully!", "success")
         
         # Commit the changes to the database
         try:
@@ -512,6 +502,91 @@ def add_recycling_revenue():
             db_session.rollback()
     
     return render_template('add_recycling_revenue.html', material_columns=material_columns, today_date=today_date)
+
+
+@app.route('/delete_landfill_expense', methods=['GET', 'POST'])
+def delete_landfill_expense():
+    if 'role' not in flask_session or flask_session['role'] != 'admin':
+        flash("You do not have permission to access this page.", "danger")
+        return redirect(url_for('login'))
+
+    if request.method == 'POST':
+        hauler_name = request.form.get('hauler_name')
+        landfill_date_str = request.form.get('landfill_date')
+        
+        if hauler_name and landfill_date_str:
+            landfill_date = datetime.strptime(landfill_date_str, '%Y-%m-%d').date()
+
+            # Query to delete the landfill expense record for the selected hauler and date
+            expense_record = db_session.query(LandfillExpense).filter_by(hauler=hauler_name, landfill_date=landfill_date).first()
+            
+            if expense_record:
+                db_session.delete(expense_record)
+                try:
+                    db_session.commit()
+                    flash(f"Landfill expense record for hauler '{hauler_name}' on {landfill_date_str} deleted successfully!", "success")
+                except Exception as e:
+                    db_session.rollback()
+                    flash(f"An error occurred: {e}", "danger")
+            else:
+                flash("No landfill expense record found for the selected hauler and date!", "warning")
+        else:
+            flash("Please select both a hauler and a date to delete!", "warning")
+
+        return redirect(url_for('delete_landfill_expense'))
+
+    # For GET request, execute raw SQL to fetch all distinct hauler names
+    result = db_session.execute(text("SELECT DISTINCT hauler FROM landfill_expenses"))
+    haulers = [row[0] for row in result]
+
+    # Pass current date to the template
+    current_date = datetime.today().strftime('%Y-%m-%d')
+    return render_template('delete_landfill_expense.html', haulers=haulers, current_date=current_date)
+
+@app.route('/delete_recycling_revenue', methods=['GET', 'POST'])
+def delete_recycling_revenue():
+    if 'role' not in flask_session or flask_session['role'] != 'admin':
+        flash("You do not have permission to access this page.", "danger")
+        return redirect(url_for('login'))
+
+    if request.method == 'POST':
+        sale_date_str = request.form.get('sale_date')
+        material_type = request.form.get('material_type')
+        buyer = request.form.get('buyer')
+        
+        if sale_date_str and material_type and buyer:
+            sale_date = datetime.strptime(sale_date_str, '%Y-%m-%d').date()
+
+            # Query to delete the recycling revenue record for the selected date, material type, and buyer
+            revenue_record = db_session.query(RecyclingRevenue).filter_by(
+                sale_date=sale_date,
+                material_type=material_type,
+                buyer=buyer
+            ).first()
+            
+            if revenue_record:
+                db_session.delete(revenue_record)
+                try:
+                    db_session.commit()
+                    flash(f"Recycling revenue record for buyer '{buyer}' on {sale_date_str} deleted successfully!", "success")
+                except Exception as e:
+                    db_session.rollback()
+                    flash(f"An error occurred: {e}", "danger")
+            else:
+                flash("No recycling revenue record found for the selected date, material type, and buyer!", "warning")
+        else:
+            flash("Please select a date, material type, and buyer to delete!", "warning")
+
+        return redirect(url_for('delete_recycling_revenue'))
+
+    # For GET request, fetch distinct material types and buyers
+    material_columns = get_material_type_columns()
+    buyers_result = db_session.execute(text("SELECT DISTINCT buyer FROM recycling_revenue"))
+    buyers = [row[0] for row in buyers_result if row[0]]  # Exclude any None values
+
+    # Pass current date to the template
+    current_date = datetime.today().strftime('%Y-%m-%d')
+    return render_template('delete_recycling_revenue.html', material_columns=material_columns, buyers=buyers, current_date=current_date)
 
 # Route for user logout
 @app.route('/logout')

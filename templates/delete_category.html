@@ -1,77 +1,92 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h2 class="text-center" style="margin-bottom: 2rem;">Delete Category or Subcategory</h2>
-{% with messages = get_flashed_messages() %}
-  {% if messages %}
-    <div class="alert alert-success">
-      {% for message in messages %}
-        <p>{{ message }}</p>
-      {% endfor %}
-    </div>
-  {% endif %}
-{% endwith %}
-<form method="POST" action="{{ url_for('delete_category') }}">
-  <div class="mb-4" style="max-width: 690px; margin: 0 auto;">
-    <label for="category_id" class="form-label fw-bold">Select Category</label>
-    <select class="form-select" id="category_id" name="category_id" required>
-      <option value="">Choose a category...</option>
-      {% for category in categories %}
-        <option value="{{ category.id }}">{{ category.name }}</option>
-      {% endfor %}
-    </select>
-  </div>
-  <div class="mb-4" style="max-width: 690px; margin: 0 auto;">
-    <label for="subcategory_id" class="form-label fw-bold">Select Subcategory (optional)</label>
-    <select class="form-select" id="subcategory_id" name="subcategory_id">
-      <option value="">Choose a subcategory...</option>
-    </select>
-  </div>
-  <div class="d-flex justify-content-center mt-5">
-    <button type="submit" class="btn btn-danger me-2">Delete</button>
-    <a href="{{ url_for('log_waste') }}" class="btn btn-secondary ms-2">Cancel</a>
-  </div>
-</form>
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-  const categorySelect = document.getElementById('category_id');
-  const subcategorySelect = document.getElementById('subcategory_id');
-  categorySelect.addEventListener('change', function() {
-    const categoryId = this.value;
-    subcategorySelect.innerHTML = '<option value="">Choose a subcategory...</option>';
-    subcategorySelect.disabled = !categoryId;
-    
-    if (categoryId) {
-      fetch(`/get-subcategories/${categoryId}`)
-        .then(response => response.json())
-        .then(data => {
-          data.forEach(subcategory => {
-            const option = document.createElement('option');
-            option.value = subcategory.id;
-            option.textContent = subcategory.name;
-            subcategorySelect.appendChild(option);
+<div class="container mt-2 mb-3" style="max-width: 700px; margin: 0 auto;">
+    <h2 class="text-center mb-4" style="margin-top: 0;">Delete Category or Subcategory</h2>
+
+    <!-- Flash message display as plain green text, aligned with the form fields -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="message-overlay" style="color: green;"> <!-- Green-colored message overlay -->
+          {% for category, message in messages %}
+            <p>{{ message }}</p> <!-- Display only the message part of the tuple -->
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <form method="POST" action="{{ url_for('delete_category') }}">
+      <div class="mb-4" style="max-width: 690px; margin: 0 auto;">
+        <label for="category_id" class="form-label fw-bold">Select Category</label>
+        <select class="form-select" id="category_id" name="category_id" required>
+          <option value="">Choose a category...</option>
+          {% for category in categories %}
+            <option value="{{ category.id }}">{{ category.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="mb-4" style="max-width: 690px; margin: 0 auto;">
+        <label for="subcategory_id" class="form-label fw-bold">Select Subcategory (optional)</label>
+        <select class="form-select" id="subcategory_id" name="subcategory_id">
+          <option value="">Choose a subcategory...</option>
+        </select>
+      </div>
+      <div class="d-flex justify-content-center mt-5">
+        <button type="submit" class="btn btn-danger me-2">Delete</button>
+        <a href="{{ url_for('log_waste') }}" class="btn btn-secondary ms-2">Cancel</a>
+      </div>
+    </form>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+          const categorySelect = document.getElementById('category_id');
+          const subcategorySelect = document.getElementById('subcategory_id');
+          categorySelect.addEventListener('change', function() {
+            const categoryId = this.value;
+            subcategorySelect.innerHTML = '<option value="">Choose a subcategory...</option>';
+            subcategorySelect.disabled = !categoryId;
+
+            if (categoryId) {
+              fetch(`/get-subcategories/${categoryId}`)
+                .then(response => response.json())
+                .then(data => {
+                  data.forEach(subcategory => {
+                    const option = document.createElement('option');
+                    option.value = subcategory.id;
+                    option.textContent = subcategory.name;
+                    subcategorySelect.appendChild(option);
+                  });
+                });
+            }
           });
+          subcategorySelect.disabled = !categorySelect.value;
         });
-    }
-  });
-  subcategorySelect.disabled = !categorySelect.value;
-});
-</script>
+    </script>
 
-<!-- Custom inline style to set consistent button width and increase dropdown width -->
-<style>
-    .btn-wide {
-        width: 130px; /* Set a fixed width for the buttons */
-    }
-    
-    /* Increase maximum width of dropdowns and center align */
-    .form-select {
-        max-width: 700px; /* Increased width for dropdowns */
-    }
+    <style>
+        /* Adjust the message alignment and style */
+        .message-overlay {
+            position: relative;
+            padding-left: 15px; /* Align with form fields */
+            max-width: 690px;
+            font-size: 1rem;
+            font-weight: bold;
+            color: green; /* Set message color to green */
+            text-align: left; /* Align message to the left */
+            margin-bottom: 20px; /* Add space between message and form */
+        }
 
-    /* Add additional space between the select fields */
-    .mb-4 {
-        margin-bottom: 2rem !important; /* Increase bottom margin to create space */
-    }
-</style>
+        .btn-wide {
+            width: 130px;
+        }
+
+        .form-select {
+            max-width: 700px;
+        }
+
+        .mb-4 {
+            margin-bottom: 2rem !important;
+        }
+    </style>
+</div>
 {% endblock %}
