@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reporting: Summary Table</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .table-header { background-color: #cfe2f3; }
+        .table-title { background-color: #d9ead3; }
+        .table-total { background-color: #e6b8af; }
+        .table-diversion { background-color: #fce5cd; }
+        .text-green { color: #38761d; font-weight: bold; }
+        .text-blue { color: #1155cc; }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="text-center text-green">Reporting: Summary Table</h1>
+        <table class="table table-bordered table-striped">
+            <thead>
+                <tr>
+                    <th class="table-header">FY24</th>
+                    {% for month in months %}
+                        <th class="table-header text-center">{{ month }}</th>
+                    {% endfor %}
+                    <th class="table-header text-center">Item Totals</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Revenue Row -->
+                <tr class="table-title">
+                    <td>Recycling Revenue ($)</td>
+                    {% for month in months %}
+                        <td class="text-center">{{ summary_data['revenue'].get(month, 0) }}</td>
+                    {% endfor %}
+                    <td class="text-center">{{ summary_data['totals'].get('revenue', 0) }}</td>
+                </tr>
+                
+                <!-- Landfill Row -->
+                <tr class="table-title">
+                    <td>Landfill lbs.</td>
+                    {% for month in months %}
+                        <td class="text-center">{{ summary_data['landfill'].get(month, 0) }}</td>
+                    {% endfor %}
+                    <td class="text-center">{{ summary_data['totals'].get('landfill', 0) }}</td>
+                </tr>
+
+                <!-- Compost Row -->
+                <tr class="table-title">
+                    <td>Compost lbs.</td>
+                    {% for month in months %}
+                        <td class="text-center">{{ summary_data['compost'].get(month, 0) }}</td>
+                    {% endfor %}
+                    <td class="text-center">{{ summary_data['totals'].get('compost', 0) }}</td>
+                </tr>
+
+                <!-- Recycled Materials Rows -->
+                {% for material, data in summary_data['recycled'].items() %}
+                <tr>
+                    <td class="text-blue">{{ material }} lbs.</td>
+                    {% for month in months %}
+                        <td class="text-center">{{ data.get(month, 0) }}</td>
+                    {% endfor %}
+                    <td class="text-center">{{ data.values() | sum }}</td>
+                </tr>
+                {% endfor %}
+
+                <!-- Total Recycled Row -->
+                <tr class="table-title text-green">
+                    <td>Total Recycled lbs.</td>
+                    {% for month in months %}
+                        <td class="text-center">
+                            {% set total_recycled = 0 %}
+                            {% for material in summary_data['recycled'] %}
+                                {% set total_recycled = total_recycled + summary_data['recycled'][material].get(month, 0) %}
+                            {% endfor %}
+                            {{ total_recycled }}
+                        </td>
+                    {% endfor %}
+                    <td class="text-center">{{ summary_data['totals'].get('recycled', 0) }}</td>
+                </tr>
+
+                <!-- Total Waste Generated Row -->
+                <tr class="table-total text-green">
+                    <td>Total Waste Generated lbs.</td>
+                    {% for month in months %}
+                        <td class="text-center">
+                            {% set total_generated = summary_data['landfill'].get(month, 0) + summary_data['compost'].get(month, 0) %}
+                            {% for material in summary_data['recycled'] %}
+                                {% set total_generated = total_generated + summary_data['recycled'][material].get(month, 0) %}
+                            {% endfor %}
+                            {{ total_generated }}
+                        </td>
+                    {% endfor %}
+                    <td class="text-center">{{ summary_data['totals'].get('waste_generated', 0) }}</td>
+                </tr>
+
+                <!-- Total Waste Diverted Row -->
+                <tr class="table-total text-green">
+                    <td>Total Waste Diverted lbs.</td>
+                    {% for month in months %}
+                        <td class="text-center">
+                            {% set total_diverted = summary_data['compost'].get(month, 0) %}
+                            {% for material in summary_data['recycled'] %}
+                                {% set total_diverted = total_diverted + summary_data['recycled'][material].get(month, 0) %}
+                            {% endfor %}
+                            {{ total_diverted }}
+                        </td>
+                    {% endfor %}
+                    <td class="text-center">{{ summary_data['totals'].get('waste_diverted', 0) }}</td>
+                </tr>
+
+                <!-- Waste Diversion Rate Row -->
+                <tr class="table-diversion">
+                    <td>Waste Diversion Rate %</td>
+                    {% for month in months %}
+                        {% set total_generated = summary_data['landfill'].get(month, 0) + summary_data['compost'].get(month, 0) %}
+                        {% for material in summary_data['recycled'] %}
+                            {% set total_generated = total_generated + summary_data['recycled'][material].get(month, 0) %}
+                        {% endfor %}
+                        {% set total_diverted = summary_data['compost'].get(month, 0) %}
+                        {% for material in summary_data['recycled'] %}
+                            {% set total_diverted = total_diverted + summary_data['recycled'][material].get(month, 0) %}
+                        {% endfor %}
+                        <td class="text-center">
+                            {% if total_generated > 0 %}
+                                {{ (total_diverted / total_generated * 100) | round(2) }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                    {% endfor %}
+                    <td class="text-center">
+                        {% if summary_data['totals'].get('waste_generated', 0) > 0 %}
+                            {{ (summary_data['totals'].get('waste_diverted', 0) / summary_data['totals'].get('waste_generated', 0) * 100) | round(2) }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>

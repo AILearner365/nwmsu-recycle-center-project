@@ -86,16 +86,19 @@
                     </li>
                     {% if session['role'] == 'admin' %}
                     <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('manage_users') }}">Manage Users</a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('add_category') }}">Add Category</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('delete_category') }}">Delete Category</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('manage_users') }}">Manage Users</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/generate-report">Generate Report</a>
+                        <!--<a class="nav-link" href="/generate-report">Generate Report</a>-->
+                        <!--<a class="nav-link" href="{{ url_for('summary_table') }}">Generate Report</a>-->
+                        <a class="nav-link" href="{{ url_for('generate_report') }}">Generate Report</a>
+
                     </li>
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="revenueDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -104,7 +107,6 @@
                         <ul class="dropdown-menu" aria-labelledby="revenueDropdown">
                             <li><a class="dropdown-item" href="{{ url_for('add_recycling_revenue') }}">Add Revenue Record</a></li>
                             <li><a class="dropdown-item" href="{{ url_for('delete_recycling_revenue') }}">Delete Revenue Record</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('generate_recycling_revenue_report') }}">Generate Revenue Report</a></li>
                         </ul>
                     </li>
                     <li class="nav-item dropdown">
@@ -114,7 +116,6 @@
                         <ul class="dropdown-menu" aria-labelledby="expenseDropdown">
                             <li><a class="dropdown-item" href="{{ url_for('add_landfill_expense') }}">Add Expense Record</a></li>
                             <li><a class="dropdown-item" href="{{ url_for('delete_landfill_expense') }}">Delete Expense Record</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('generate_landfill_expense_report') }}">Generate Expense Report</a></li>
                         </ul>
                     </li>
                     {% endif %}
