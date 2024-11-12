@@ -1,22 +1,19 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container mt-2 mb-3" style="max-width: 700px; margin: 0 auto; position: relative;">
-    <!-- Flash message display -->
+<div class="container mt-1 mb-3" style="max-width: 700px; margin: 0 auto; position: relative;">
+    <h2 class="text-center" style="margin-top: -20px; margin-bottom: 20px;">Add Recycling Revenue</h2> <!-- Adjusted margin-top to move it up -->
+
+    <!-- Flash message display as plain green text, aligned with the text boxes -->
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
-        <div class="alert-container">
+        <div class="message-overlay" style="color: green;"> <!-- Green-colored message overlay -->
           {% for category, message in messages %}
-            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-              {{ message }}
-              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
+            <p>{{ message }}</p>
           {% endfor %}
         </div>
       {% endif %}
     {% endwith %}
-
-    <h2 class="text-center mb-3" style="margin-top: 0;">Add Recycling Revenue</h2>
 
     <form method="POST" action="{{ url_for('add_recycling_revenue') }}">
         <div class="mb-2">
@@ -71,21 +68,18 @@
             color: #ffffff;
         }
 
-        /* Styling for the alert container in the indicated position */
-        .alert-container {
+        /* Adjust the message alignment and style */
+        .message-overlay {
             position: absolute;
-            top: 40px;
-            right: 12px;
+            top: 35px; /* Position slightly below the header */
+            left: 15px; /* Align with the text boxes */
+            width: calc(100% - 30px); /* Width matching the text boxes */
+            max-width: 690px;
+            font-size: 1rem;
+            font-weight: bold;
             z-index: 1000;
-            width: auto;
-            max-width: 400px;
-        }
-        .alert {
-            padding: 0.5rem 1rem;
-            font-size: 0.9rem;
-            margin-bottom: 0;
-            text-align: center;
-            white-space: nowrap;
+            text-align: left;
+            color: green; /* Set message color to green */
         }
     </style>
 </div>

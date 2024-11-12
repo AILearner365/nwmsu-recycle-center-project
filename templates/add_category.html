@@ -6,9 +6,9 @@
             {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
-                <div class="alert alert-{{ category }}">
-                    <p>{{ message }}</p>
-                </div>
+                <p class="message-text {% if category == 'success' %}text-success{% elif category == 'danger' %}text-danger{% elif category == 'warning' %}text-warning{% endif %} fw-bold">
+                    {{ message }}
+                </p>
                 {% endfor %}
             {% endif %}
             {% endwith %}
@@ -42,19 +42,16 @@
 
     <script>
         function isValidName(name) {
-            // Allow only letters and numbers
             const regex = /^[a-zA-Z0-9]+$/;
             return regex.test(name);
         }
 
-        // Real-time validation for inputs
         document.getElementById('category_name').addEventListener('input', function() {
             const isValid = isValidName(this.value);
             this.classList.toggle('is-invalid', !isValid);
             document.getElementById('categoryNameError').style.display = isValid ? 'none' : 'block';
         });
 
-        // Add real-time validation for subcategory inputs
         document.addEventListener('input', function(e) {
             if (e.target.classList.contains('subcategory-input')) {
                 const isValid = isValidName(e.target.value);
@@ -67,7 +64,6 @@
             const categoryName = document.getElementById('category_name').value;
             const categoryNameError = document.getElementById('categoryNameError');
             
-            // Validate category name
             if (!isValidName(categoryName)) {
                 categoryNameError.style.display = 'block';
                 document.getElementById('category_name').classList.add('is-invalid');
@@ -77,7 +73,6 @@
                 document.getElementById('category_name').classList.remove('is-invalid');
             }
 
-            // Validate all subcategories
             const subcategoryInputs = document.getElementsByClassName('subcategory-input');
             for (let input of subcategoryInputs) {
                 if (!isValidName(input.value)) {
@@ -108,34 +103,45 @@
         });
     </script>
 
-    <!-- Custom styles for buttons -->
     <style>
         .custom-button {
-            background-color: #6c757d; /* Set background to #5a5a5a */
-            color: #ffffff; /* Set text color to white */
-            border: none; /* Remove default border */
-            padding: 0.5rem 1rem; /* Adjust padding */
-            border-radius: 5px; /* Add rounded corners */
+            background-color: #6c757d;
+            color: #ffffff;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
         }
 
-        /* Smaller button for Add Subcategory */
         .custom-button-sm {
-            background-color: #007BFF; /* Blue background for Add Subcategory button */
-            color: #ffffff; /* Set text color to white */
-            border: none; /* Remove default border */
-            padding: 0.3rem 0.75rem; /* Smaller padding for a smaller button */
-            font-size: 0.9rem; /* Slightly smaller font size */
-            border-radius: 5px; /* Add rounded corners */
+            background-color: #007BFF;
+            color: #ffffff;
+            border: none;
+            padding: 0.3rem 0.75rem;
+            font-size: 0.9rem;
+            border-radius: 5px;
         }
 
-        /* Hover effect for Add Subcategory to be a darker blue */
         .custom-button-sm:hover {
-            background-color: #0056b3; /* Darker blue color on hover */
+            background-color: #0056b3;
         }
 
-        /* Hover effect for Submit Category and Back to Log Waste buttons */
         .custom-button:hover {
-            background-color: #5a5a5a; /* Slightly lighter color on hover */
+            background-color: #5a5a5a;
+        }
+
+        .text-success {
+            color: #28a745; /* Green text for success */
+        }
+        .text-danger {
+            color: #dc3545; /* Red text for danger */
+        }
+        .text-warning {
+            color: #ffc107; /* Yellow text for warning */
+        }
+
+        /* Bold font style for message */
+        .fw-bold {
+            font-weight: bold;
         }
     </style>
 {% endblock %}

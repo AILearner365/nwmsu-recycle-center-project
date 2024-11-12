@@ -1,18 +1,15 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container mt-2 mb-3" style="max-width: 700px; margin: 0 auto; position: relative;">
-    <h2 class="text-center mb-3" style="margin-top: 0;">Add Landfill Expense</h2>
+<div class="container mt-1 mb-3" style="max-width: 700px; margin: 0 auto; position: relative;">
+    <h2 class="text-center" style="margin-top: -10px; margin-bottom: 30px;">Add Landfill Expense</h2> <!-- Increased margin-bottom to add more space -->
 
-    <!-- Flash message display positioned under the title and overlayed -->
+    <!-- Flash message display as plain green text, positioned under the title -->
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
-        <div class="alert-container">
+        <div class="message-overlay" style="color: green;"> <!-- Green-colored message overlay -->
           {% for category, message in messages %}
-            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-              {{ message }}
-              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
+            <p>{{ message }}</p>
           {% endfor %}
         </div>
       {% endif %}
@@ -69,25 +66,18 @@
             margin-bottom: 1.5rem !important;
         }
 
-        /* Absolute positioning for the alert to prevent layout shifting */
-        .alert-container {
+        /* Adjust the message alignment and add space between the header and message */
+        .message-overlay {
             position: absolute;
-            top: 40px; /* Adjust this value to control the vertical position */
-            right: 12px;
-            left: 75%; /* Adjusted from 50% to 55% to move slightly to the right */
-            transform: translateX(-50%);
+            top: 35px; /* Positioning below the header */
+            left: 15px; /* Align with the left padding of the form fields */
+            width: calc(100% - 30px); /* Align width with form fields considering padding */
+            max-width: 690px;
+            font-size: 1rem;
+            font-weight: bold;
             z-index: 1000;
-            width: 100%;
-            max-width: 700px;
-            text-align: center;
-        }
-
-        .alert {
-            padding: 0.5rem 1rem;
-            font-size: 0.9rem;
-            margin-bottom: 0;
-            display: inline-block;
-            white-space: nowrap;
+            text-align: left;
+            color: green; /* Set message color to green */
         }
     </style>
 </div>

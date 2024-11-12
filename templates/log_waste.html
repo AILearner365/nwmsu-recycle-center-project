@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container mb-5" style="max-width: 900px; margin: 0 auto;"> <!-- Added max-width to reduce the width and center align -->
+<div class="container mb-5" style="max-width: 900px; margin: 0 auto;">
     <h2 class="text-center mb-4">Compost & Recycling Waste Data</h2>
     <form method="GET" action="/log-waste" class="mb-4" id="date_form">
         <div class="mb-3">
@@ -17,11 +17,13 @@
     </form>
     {% if show_form %}
     <h5 class="mt-4 mb-3">Compost & Recycling Log for {{ selected_date }}</h5>
-    {% with messages = get_flashed_messages() %}
+    {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
     <div class="flashes">
-        {% for message in messages %}
-        <p>{{ message }}</p>
+        {% for category, message in messages %}
+        <p class="{% if category == 'success' %}text-success{% elif category == 'danger' %}text-danger{% elif category == 'warning' %}text-warning{% endif %} fw-bold">
+            {{ message }}
+        </p>
         {% endfor %}
     </div>
     {% endif %}
@@ -68,7 +70,6 @@
     </form>
     {% endif %}
 
-    <!-- JavaScript to auto-submit the form when the date is changed -->
     <script>
         const today = new Date().toISOString().split('T')[0];
         const dateInput = document.getElementById('date_view');
@@ -78,33 +79,46 @@
         });
     </script>
 
-    <!-- Inline styles to style the table headers and button directly -->
     <style>
         .table thead th {
-            background-color: #228363; /* Green background for table headers */
-            color: #ffffff; /* White text color for table headers */
+            background-color: #228363;
+            color: #ffffff;
             font-weight: 600;
-            font-size: 1.2rem; /* Increased font size */
+            font-size: 1.2rem;
         }
         
         .log-waste-button {
-            font-size: 1.2rem; /* Increase font size */
-            padding: 0.5rem 1.5rem; /* Increase padding for a larger button */
-            background-color: #6c757d; /* Black background color */
-            color: #ffffff; /* White text color */
-            border: none; /* Remove border */
-            border-radius: 5px; /* Optional: add rounded corners */
+            font-size: 1.2rem;
+            padding: 0.5rem 1.5rem;
+            background-color: #6c757d;
+            color: #ffffff;
+            border: none;
+            border-radius: 5px;
         }
         
         .log-waste-button:hover {
-            background-color: #333333; /* Darker shade on hover */
+            background-color: #333333;
             color: #ffffff;
         }
         
         .input-group-text {
             padding: 0;
             border: none;
-            background-color: transparent; /* Make the background transparent */
+            background-color: transparent;
+        }
+
+        .text-success {
+            color: #28a745;
+        }
+        .text-danger {
+            color: #dc3545;
+        }
+        .text-warning {
+            color: #ffc107;
+        }
+
+        .fw-bold {
+            font-weight: bold;
         }
     </style>
 </div>
