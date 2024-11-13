@@ -56,7 +56,7 @@ def login():
     flask_session['user_id'] = user.id
     flask_session['role'] = user.role
     return redirect('/log-waste')
-  flash("Invalid credentials")
+  flash("Invalid credentials!")
   return redirect('/')
 
 # Route to manage users (only for admin)
