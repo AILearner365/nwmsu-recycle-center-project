@@ -94,12 +94,6 @@
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('delete_category') }}">Delete Category</a>
                     </li>
-                    <li class="nav-item">
-                        <!--<a class="nav-link" href="/generate-report">Generate Report</a>-->
-                        <!--<a class="nav-link" href="{{ url_for('summary_table') }}">Generate Report</a>-->
-                        <a class="nav-link" href="{{ url_for('generate_report') }}">Reports</a>
-
-                    </li>
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="revenueDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             Recycling Revenue
@@ -117,6 +111,12 @@
                             <li><a class="dropdown-item" href="{{ url_for('add_landfill_expense') }}">Add Expense Record</a></li>
                             <li><a class="dropdown-item" href="{{ url_for('delete_landfill_expense') }}">Delete Expense Record</a></li>
                         </ul>
+                    </li>
+                    <li class="nav-item">
+                        <!--<a class="nav-link" href="/generate-report">Generate Report</a>-->
+                        <!--<a class="nav-link" href="{{ url_for('summary_table') }}">Generate Report</a>-->
+                        <a class="nav-link" href="{{ url_for('generate_report') }}">Reports</a>
+
                     </li>
                     {% endif %}
                 </ul>
