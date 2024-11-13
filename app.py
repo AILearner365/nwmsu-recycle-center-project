@@ -789,17 +789,24 @@ def monthly_waste_graphs():
 
     return render_template('monthly_waste_graphs.html', figures=figures)
 
+from sqlalchemy import text
 
 def calculate_diversion_rate():
-    total_waste = (db_session.query(func.sum(LandfillExpense.weight)).scalar() or 0) + \
-                  (db_session.query(func.sum(WasteRecord.Food_Compost)).scalar() or 0) + \
-                  (db_session.query(func.sum(RecyclingRevenue.weight)).scalar() or 0)
-    diverted_waste = (db_session.query(func.sum(WasteRecord.Food_Compost)).scalar() or 0) + \
-                     (db_session.query(func.sum(RecyclingRevenue.weight)).scalar() or 0)
+    total_waste = (
+        (db_session.query(func.sum(LandfillExpense.weight)).scalar() or 0) +
+        (db_session.query(func.sum(text("Food_Compost"))).scalar() or 0) +  # Dynamic access for Food_Compost
+        (db_session.query(func.sum(RecyclingRevenue.weight)).scalar() or 0)
+    )
+
+    diverted_waste = (
+        (db_session.query(func.sum(text("Food_Compost"))).scalar() or 0) +  # Dynamic access for Food_Compost
+        (db_session.query(func.sum(RecyclingRevenue.weight)).scalar() or 0)
+    )
 
     if total_waste == 0:
         return 0
     return (diverted_waste / total_waste) * 100
+
 
 #Summary Reports logic 
 # Route to display the Generate Report form
@@ -818,18 +825,33 @@ def summary_table():
     start_date_str = request.args.get('start_date')
     end_date_str = request.args.get('end_date')
 
+    # Ensure start_date and end_date are not None before using them
+    if not start_date_str or not end_date_str:
+        flash("Start date and end date are required.", "danger")
+        return redirect(url_for('generate_report'))
+
+    # Parse start and end dates for consistency
     start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
     end_date = datetime.strptime(end_date_str, '%Y-%m-%d')
 
     summary_data, months = get_summary_data(start_date, end_date)
+    
+    # Pass start_date_str and end_date_str to the template
+    return render_template(
+        'summary_table.html', 
+        summary_data=summary_data, 
+        months=months, 
+        start_date_str=start_date_str, 
+        end_date_str=end_date_str
+    )
 
-    return render_template('summary_table.html', summary_data=summary_data, months=months)
 
 
 #get_summary_data
 def get_summary_data(start_date, end_date):
     summary_data = {
-        'revenue': {}, 'landfill': {}, 'compost': {}, 'recycled': {}, 'diversion_rate': {}
+        'revenue': {}, 'landfill': {}, 'compost': {}, 'recycled': {}, 'diversion_rate': {},
+        'recycled_total': {}, 'generated_total': {}, 'diverted_total': {}
     }
     
     months = []
@@ -849,40 +871,46 @@ def get_summary_data(start_date, end_date):
     for month in months:
         landfill_weight = db_session.query(func.sum(LandfillExpense.weight)) \
                                     .filter(func.strftime('%Y-%m', LandfillExpense.landfill_date) == month).scalar() or 0
+        compost_weight = db_session.query(func.sum(text("Food_Compost"))) \
+                                   .filter(func.strftime('%Y-%m', WasteRecord.date_collected) == month).scalar() or 0
         summary_data['landfill'][month] = landfill_weight
+        summary_data['compost'][month] = compost_weight  # Add compost weight per month
 
     # Get dynamic columns for recyclable materials from `waste_records`
     inspector = inspect(db_session.bind)
     recyclable_columns = [col['name'] for col in inspector.get_columns('waste_records') if col['name'] not in ('id', 'date_collected', 'user_id')]
 
-    # Calculate weights for each dynamic recyclable column
-    for column in recyclable_columns:
-        column_data = {}
-        for month in months:
+    # Calculate weights for each dynamic recyclable column and store total recycled weight per month
+    for month in months:
+        total_recycled = 0
+        for column in recyclable_columns:
             weight = db_session.query(func.sum(text(column))) \
                                .filter(func.strftime('%Y-%m', WasteRecord.date_collected) == month).scalar() or 0
-            column_data[month] = weight
-        summary_data['recycled'][column] = column_data
+            summary_data['recycled'].setdefault(column, {})[month] = weight
+            total_recycled += weight
+        summary_data['recycled_total'][month] = total_recycled
 
-    # Calculate Totals
+    # Calculate total waste generated and total waste diverted per month
+    for month in months:
+        total_generated = summary_data['landfill'].get(month, 0) + summary_data['compost'].get(month, 0) + summary_data['recycled_total'].get(month, 0)
+        total_diverted = summary_data['compost'].get(month, 0) + summary_data['recycled_total'].get(month, 0)
+        summary_data['generated_total'][month] = total_generated
+        summary_data['diverted_total'][month] = total_diverted
+        summary_data['diversion_rate'][month] = (total_diverted / total_generated * 100) if total_generated > 0 else 0
+
+    # Calculate overall totals
     summary_data['totals'] = {
         'revenue': sum(summary_data['revenue'].values()),
         'landfill': sum(summary_data['landfill'].values()),
-        'recycled': sum(sum(month_data.values()) for month_data in summary_data['recycled'].values()),
-        'waste_generated': sum(summary_data['landfill'].values()) +
-                           sum(sum(month_data.values()) for month_data in summary_data['recycled'].values()),
-        'waste_diverted': sum(sum(month_data.values()) for month_data in summary_data['recycled'].values())
+        'compost': sum(summary_data['compost'].values()),
+        'recycled': sum(summary_data['recycled_total'].values()),
+        'waste_generated': sum(summary_data['generated_total'].values()),
+        'waste_diverted': sum(summary_data['diverted_total'].values()),
+        'diversion_rate': (sum(summary_data['diverted_total'].values()) / sum(summary_data['generated_total'].values()) * 100) if sum(summary_data['generated_total'].values()) > 0 else 0
     }
 
-    # Calculate Waste Diversion Rate (%) per month
-    for month in months:
-        total_generated = summary_data['landfill'].get(month, 0) + sum(
-            summary_data['recycled'][col].get(month, 0) for col in summary_data['recycled']
-        )
-        diverted = sum(summary_data['recycled'][col].get(month, 0) for col in summary_data['recycled'])
-        summary_data['diversion_rate'][month] = (diverted / total_generated * 100) if total_generated > 0 else 0
-    
     return summary_data, months
+
 
 
 # Route to download landfill expenses as an Excel file
@@ -1037,6 +1065,71 @@ def download_waste_records():
         error_message = ''.join(traceback.format_exception(None, e, e.__traceback__))
         flash(f"An unexpected error occurred: {error_message}", "danger")
         return redirect(url_for('generate_report'))
+
+@app.route('/download-summary-report', methods=['GET'])
+def download_summary_report():
+    start_date_str = request.args.get('start_date')
+    end_date_str = request.args.get('end_date')
+    
+    if not start_date_str or not end_date_str:
+        flash("Start date and end date are required to download the report.", "danger")
+        return redirect(url_for('generate_report'))
+    
+    # Parse dates
+    start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
+    end_date = datetime.strptime(end_date_str, '%Y-%m-%d')
+    
+    # Get the summary data using the updated get_summary_data function
+    summary_data, months = get_summary_data(start_date, end_date)
+    
+    # Prepare data for Excel
+    rows = []
+    rows.append(['Metric'] + months + ['Item Totals'])
+    
+    # Add rows for various metrics
+    revenue_row = ['Recycling Revenue ($)'] + [summary_data['revenue'].get(month, 0) for month in months] + [summary_data['totals'].get('revenue', 0)]
+    rows.append(revenue_row)
+
+    landfill_row = ['Landfill lbs.'] + [summary_data['landfill'].get(month, 0) for month in months] + [summary_data['totals'].get('landfill', 0)]
+    rows.append(landfill_row)
+
+    compost_row = ['Compost lbs.'] + [summary_data['compost'].get(month, 0) for month in months] + [summary_data['totals'].get('compost', 0)]
+    rows.append(compost_row)
+
+    for material, data in summary_data['recycled'].items():
+        material_row = [f"{material} lbs."] + [data.get(month, 0) for month in months] + [sum(data.values())]
+        rows.append(material_row)
+
+    total_recycled_row = ['Total Recycled lbs.'] + [summary_data['recycled_total'].get(month, 0) for month in months] + [summary_data['totals'].get('recycled', 0)]
+    rows.append(total_recycled_row)
+
+    total_waste_generated_row = ['Total Waste Generated lbs.'] + [summary_data['generated_total'].get(month, 0) for month in months] + [summary_data['totals'].get('waste_generated', 0)]
+    rows.append(total_waste_generated_row)
+
+    total_waste_diverted_row = ['Total Waste Diverted lbs.'] + [summary_data['diverted_total'].get(month, 0) for month in months] + [summary_data['totals'].get('waste_diverted', 0)]
+    rows.append(total_waste_diverted_row)
+
+    # Corrected line for Waste Diversion Rate %
+    diversion_rate_row = ['Waste Diversion Rate %'] + [summary_data['diversion_rate'].get(month, '-') for month in months] + [round(summary_data['totals'].get('diversion_rate', 0), 2)]
+    rows.append(diversion_rate_row)
+
+    # Convert to DataFrame for Excel output
+    df = pd.DataFrame(rows[1:], columns=rows[0])
+
+    # Save the DataFrame to an in-memory Excel file
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        df.to_excel(writer, index=False, sheet_name='Summary Report')
+    output.seek(0)
+
+    # Send the file as a download
+    return send_file(output, as_attachment=True, download_name='Summary_Report.xlsx', mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+
+@app.template_filter('dateformat')
+def dateformat(value, format='%b-%y'):
+    """Format a string date (YYYY-MM) to MMM-YY"""
+    date = datetime.strptime(value, '%Y-%m')
+    return date.strftime(format)
 
 # Route for user logout
 @app.route('/logout')
