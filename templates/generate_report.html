@@ -13,7 +13,7 @@
         <label for="end_date" class="form-label fw-bold">End Date</label>
         <input type="date" class="form-control" id="end_date" name="end_date" required>
     </div>
-    
+
     <!-- Button layout with spacing between rows -->
     <div class="row justify-content-center gx-2 gy-2 mt-3">
         <div class="col-auto">
@@ -26,7 +26,7 @@
             <button type="button" onclick="generateMonthlyGraphs()" class="btn btn-monthly-graphs btn-wide">Monthly Graphs</button>
         </div>
     </div>
-    <div class="row justify-content-center gx-2 gy-2 mt-2"> <!-- Add margin-top to create gap -->
+    <div class="row justify-content-center gx-2 gy-2 mt-2">
         <div class="col-auto">
             <button type="button" onclick="downloadLandfillExpenses()" class="btn btn-landfill-expenses btn-wide">Landfill Expenses</button>
         </div>
@@ -37,6 +37,11 @@
 </form>
 
 <script>
+    // JavaScript to set the max date to today to prevent future date selection
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('start_date').setAttribute('max', today);
+    document.getElementById('end_date').setAttribute('max', today);
+
     function generatePieChart() {
         const startDate = document.getElementById("start_date").value;
         const endDate = document.getElementById("end_date").value;
