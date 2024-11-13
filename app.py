@@ -568,11 +568,20 @@ def waste_pie_chart():
         flash("Please provide both start and end dates.", "danger")
         return redirect(url_for('generate_report'))
 
+    # Get columns dynamically from waste_records
+    inspector = inspect(engine)
+    columns = [col['name'] for col in inspector.get_columns('waste_records') if col['name'] not in ('id', 'date_collected', 'user_id')]
+
     # Aggregate waste data within the date range
     landfill_weight = db_session.query(func.sum(LandfillExpense.weight))\
         .filter(LandfillExpense.landfill_date.between(start_date, end_date)).scalar() or 0
-    food_waste_weight = db_session.query(func.sum(WasteRecord.Food_Compost))\
-        .filter(WasteRecord.date_collected.between(start_date, end_date)).scalar() or 0
+
+    # Check if Food_Compost column exists
+    food_waste_weight = 0
+    if 'Food_Compost' in columns:
+        food_waste_weight = db_session.query(func.sum(text("Food_Compost")))\
+            .filter(WasteRecord.date_collected.between(start_date, end_date)).scalar() or 0
+
     recycling_weight = db_session.query(func.sum(RecyclingRevenue.weight))\
         .filter(RecyclingRevenue.sale_date.between(start_date, end_date)).scalar() or 0
 
@@ -592,7 +601,6 @@ def waste_pie_chart():
         startangle=140,
         colors=colors[:len(filtered_labels)]
     )
-    #plt.title("Waste by Type")
 
     # Add a legend with weights
     plt.legend(
@@ -610,12 +618,6 @@ def waste_pie_chart():
     plot_url = base64.b64encode(img.getvalue()).decode('utf8')
 
     return render_template('pie_chart_report.html', plot_url=plot_url)
-   
-    
-    
-# Monthly Graphs 
-# Monthly Graphs 
-
     
 @app.route('/report/monthly-waste-graphs')
 def monthly_waste_graphs():
@@ -653,7 +655,7 @@ def monthly_waste_graphs():
             recyclable_weights[material_type] = []
         recyclable_weights[material_type].append((month, weight))
 
-    # Plot each recyclable type on a line chart (without internal title)
+    # Plot each recyclable type on a line chart
     plt.figure(figsize=(10, 6))
     for material_type, data in recyclable_weights.items():
         months, weights = zip(*sorted(data))
@@ -680,16 +682,26 @@ def monthly_waste_graphs():
         .order_by('month')
         .all()
     )
-    compost_data = (
-        db_session.query(
-            func.strftime('%Y-%m', WasteRecord.date_collected).label('month'),
-            func.sum(WasteRecord.Food_Compost).label('total_weight')
+
+    # Get dynamic columns from the waste_records table for materials like Food_Compost
+    inspector = inspect(engine)
+    waste_record_columns = [col['name'] for col in inspector.get_columns('waste_records') if col['name'] not in ('id', 'date_collected', 'user_id')]
+
+    # Create a dictionary to store compost data for each dynamic column
+    compost_data = {}
+    for column in waste_record_columns:
+        column_data = (
+            db_session.query(
+                func.strftime('%Y-%m', WasteRecord.date_collected).label('month'),
+                func.sum(text(column)).label('total_weight')
+            )
+            .filter(WasteRecord.date_collected.between(start_date, end_date))
+            .group_by('month')
+            .order_by('month')
+            .all()
         )
-        .filter(WasteRecord.date_collected.between(start_date, end_date))
-        .group_by('month')
-        .order_by('month')
-        .all()
-    )
+        compost_data[column] = dict(column_data)
+
     recycling_data = (
         db_session.query(
             func.strftime('%Y-%m', RecyclingRevenue.sale_date).label('month'),
@@ -701,10 +713,13 @@ def monthly_waste_graphs():
         .all()
     )
 
-    # Prepare and plot data, aligning all months (without internal title)
-    all_months = sorted({month for month, _ in landfill_data + compost_data + recycling_data})
+    # Collect all unique months across landfill, compost, and recycling data
+    all_months = sorted({month for month, _ in landfill_data} |
+                        {month for compost_column in compost_data.values() for month, _ in compost_column.items()} |
+                        {month for month, _ in recycling_data})
+
     landfill_weights = dict(landfill_data)
-    compost_weights = dict(compost_data)
+    compost_weights = {month: sum(compost_data[column].get(month, 0) for column in waste_record_columns) for month in all_months}
     recycling_weights = dict(recycling_data)
 
     weights_landfill = [landfill_weights.get(month, 0) for month in all_months]
@@ -726,7 +741,7 @@ def monthly_waste_graphs():
     img.seek(0)
     figures.append(base64.b64encode(img.getvalue()).decode('utf8'))
 
-    # 3. Diversion Rate (Monthly) (without internal title)
+    # 3. Diversion Rate (Monthly)
     diversion_data = []
     for month in all_months:
         total_waste = weights_landfill[all_months.index(month)] + weights_compost[all_months.index(month)] + weights_recycling[all_months.index(month)]
@@ -747,7 +762,7 @@ def monthly_waste_graphs():
     img.seek(0)
     figures.append(base64.b64encode(img.getvalue()).decode('utf8'))
 
-    # 4. Recycling Revenue (Monthly) (without internal title)
+    # 4. Recycling Revenue (Monthly)
     revenue_data = (
         db_session.query(
             func.strftime('%Y-%m', RecyclingRevenue.sale_date).label('month'),
@@ -773,7 +788,7 @@ def monthly_waste_graphs():
     figures.append(base64.b64encode(img.getvalue()).decode('utf8'))
 
     return render_template('monthly_waste_graphs.html', figures=figures)
-    
+
 
 def calculate_diversion_rate():
     total_waste = (db_session.query(func.sum(LandfillExpense.weight)).scalar() or 0) + \
@@ -812,10 +827,9 @@ def summary_table():
 
 
 #get_summary_data
-
 def get_summary_data(start_date, end_date):
     summary_data = {
-        'revenue': {}, 'landfill': {}, 'compost': {}, 'recycled': {}
+        'revenue': {}, 'landfill': {}, 'compost': {}, 'recycled': {}, 'diversion_rate': {}
     }
     
     months = []
@@ -829,49 +843,45 @@ def get_summary_data(start_date, end_date):
     for month in months:
         revenue = db_session.query(func.sum(RecyclingRevenue.revenue)) \
                             .filter(func.strftime('%Y-%m', RecyclingRevenue.sale_date) == month).scalar() or 0
-        logging.debug(f"Revenue for {month}: {revenue}")
         summary_data['revenue'][month] = revenue
 
     # Landfill and Compost
     for month in months:
         landfill_weight = db_session.query(func.sum(LandfillExpense.weight)) \
                                     .filter(func.strftime('%Y-%m', LandfillExpense.landfill_date) == month).scalar() or 0
-        compost_weight = db_session.query(func.sum(WasteRecord.Food_Compost)) \
-                                   .filter(func.strftime('%Y-%m', WasteRecord.date_collected) == month).scalar() or 0
-        logging.debug(f"Landfill weight for {month}: {landfill_weight}")
-        logging.debug(f"Compost weight for {month}: {compost_weight}")
         summary_data['landfill'][month] = landfill_weight
-        summary_data['compost'][month] = compost_weight
 
-    # Recycled Materials - Dynamically Retrieve All Columns in waste_records
+    # Get dynamic columns for recyclable materials from `waste_records`
     inspector = inspect(db_session.bind)
-    columns = [
-        col['name'] for col in inspector.get_columns('waste_records')
-        if col['name'] not in ('id', 'date_collected', 'user_id')  # Exclude user_id and other non-material columns
-    ]
+    recyclable_columns = [col['name'] for col in inspector.get_columns('waste_records') if col['name'] not in ('id', 'date_collected', 'user_id')]
 
-    for column in columns:
-        material_data = {}
+    # Calculate weights for each dynamic recyclable column
+    for column in recyclable_columns:
+        column_data = {}
         for month in months:
             weight = db_session.query(func.sum(text(column))) \
                                .filter(func.strftime('%Y-%m', WasteRecord.date_collected) == month).scalar() or 0
-            logging.debug(f"Weight for {column} in {month}: {weight}")
-            material_data[month] = weight
-        summary_data['recycled'][column] = material_data
+            column_data[month] = weight
+        summary_data['recycled'][column] = column_data
 
-    # Calculate Totals for All Categories
+    # Calculate Totals
     summary_data['totals'] = {
         'revenue': sum(summary_data['revenue'].values()),
         'landfill': sum(summary_data['landfill'].values()),
-        'compost': sum(summary_data['compost'].values()),
-        'recycled': sum(sum(data.values()) for data in summary_data['recycled'].values()),
+        'recycled': sum(sum(month_data.values()) for month_data in summary_data['recycled'].values()),
         'waste_generated': sum(summary_data['landfill'].values()) +
-                           sum(summary_data['compost'].values()) +
-                           sum(sum(data.values()) for data in summary_data['recycled'].values()),
-        'waste_diverted': sum(summary_data['compost'].values()) +
-                          sum(sum(data.values()) for data in summary_data['recycled'].values())
+                           sum(sum(month_data.values()) for month_data in summary_data['recycled'].values()),
+        'waste_diverted': sum(sum(month_data.values()) for month_data in summary_data['recycled'].values())
     }
 
+    # Calculate Waste Diversion Rate (%) per month
+    for month in months:
+        total_generated = summary_data['landfill'].get(month, 0) + sum(
+            summary_data['recycled'][col].get(month, 0) for col in summary_data['recycled']
+        )
+        diverted = sum(summary_data['recycled'][col].get(month, 0) for col in summary_data['recycled'])
+        summary_data['diversion_rate'][month] = (diverted / total_generated * 100) if total_generated > 0 else 0
+    
     return summary_data, months
 
 

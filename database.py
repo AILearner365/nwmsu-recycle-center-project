@@ -22,7 +22,6 @@ class WasteRecord(Base):
     id = Column(Integer, primary_key=True)
     date_collected = Column(Date, nullable=False)
     user_id = Column(Integer, ForeignKey('users.id'))
-    Food_Compost = Column(Float, nullable=False)
     # Relationship to the User model
     user = relationship("User", back_populates="waste_records")
 
