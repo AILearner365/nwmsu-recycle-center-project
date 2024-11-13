@@ -1,3 +1,5 @@
+import matplotlib
+matplotlib.use('Agg')  # Use Agg backend for non-GUI rendering
 from flask import Flask, render_template, request, redirect, session as flask_session, flash, send_file, url_for, jsonify
 from database import add_new_column, db_session, User, WasteRecord, Category, delete_column, engine, RecyclingRevenue, LandfillExpense
 import bcrypt
@@ -7,11 +9,20 @@ from dateutil.parser import parse
 from sqlalchemy.orm import joinedload
 from sqlalchemy import text
 from sqlalchemy import inspect
-from datetime import datetime
+from datetime import datetime, timedelta
 from sqlalchemy.sql import func  # Import func for date comparison
 from database import LandfillExpense
 from datetime import datetime
 import re
+import matplotlib.pyplot as plt
+import io
+import base64
+from sqlalchemy import select, func
+from flask import render_template, jsonify
+from sqlalchemy import inspect, text, func
+import logging
+
+
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'
@@ -154,50 +165,6 @@ def log_waste():
         return redirect(url_for('log_waste', date_view=selected_date))
     
     return render_template('log_waste.html', show_form=False)
-
-
-# Route to generate a report
-@app.route('/generate-report', methods=['GET', 'POST'])
-def generate_report():
-    if 'user_id' not in flask_session or flask_session['role'] != 'admin':
-        return redirect('/')
-
-    if request.method == 'POST':
-        start_date = request.form['start_date']
-        end_date = request.form['end_date']
-
-        # Query the database efficiently
-        records = db_session.query(WasteRecord).filter(WasteRecord.date_collected.between(start_date, end_date)).all()
-
-        # Create the DataFrame efficiently
-        data = [{
-            'Date': record.date_collected,
-            'Food Compost': record.food_compost,
-            'Food NonCompost': record.food_noncompost,
-            'Cardboard': record.cardboard,
-            'Paper Mixed': record.paper_mixed,
-            'Paper Newspaper': record.paper_newspaper,
-            'Paper White': record.paper_white,
-            'Plastic Pet': record.plastic_pet,
-            'Plastic Natural': record.plastic_natural,
-            'Plastic Colored': record.plastic_colored,
-            'Aluminum': record.aluminum,
-            'Metal Other': record.metal_other,
-            'Glass': record.glass
-        } for record in records]
-
-        df = pd.DataFrame(data)
-        output = BytesIO()
-        with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-            df.to_excel(writer, index=False)
-
-        output.seek(0)
-
-        return send_file(output, mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                         as_attachment=True, download_name="Waste_Report.xlsx")
-
-    return render_template('generate_report.html')
-
 
 
 def is_valid_name(name):
@@ -587,6 +554,489 @@ def delete_recycling_revenue():
     # Pass current date to the template
     current_date = datetime.today().strftime('%Y-%m-%d')
     return render_template('delete_recycling_revenue.html', material_columns=material_columns, buyers=buyers, current_date=current_date)
+
+@app.route('/report/pie-chart')
+def waste_pie_chart():
+    # Get start and end dates from query parameters
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+
+    if start_date and end_date:
+        start_date = datetime.strptime(start_date, '%Y-%m-%d')
+        end_date = datetime.strptime(end_date, '%Y-%m-%d')
+    else:
+        flash("Please provide both start and end dates.", "danger")
+        return redirect(url_for('generate_report'))
+
+    # Get columns dynamically from waste_records
+    inspector = inspect(engine)
+    columns = [col['name'] for col in inspector.get_columns('waste_records') if col['name'] not in ('id', 'date_collected', 'user_id')]
+
+    # Aggregate waste data within the date range
+    landfill_weight = db_session.query(func.sum(LandfillExpense.weight))\
+        .filter(LandfillExpense.landfill_date.between(start_date, end_date)).scalar() or 0
+
+    # Check if Food_Compost column exists
+    food_waste_weight = 0
+    if 'Food_Compost' in columns:
+        food_waste_weight = db_session.query(func.sum(text("Food_Compost")))\
+            .filter(WasteRecord.date_collected.between(start_date, end_date)).scalar() or 0
+
+    recycling_weight = db_session.query(func.sum(RecyclingRevenue.weight))\
+        .filter(RecyclingRevenue.sale_date.between(start_date, end_date)).scalar() or 0
+
+    # Prepare data for the pie chart
+    labels = ['Landfill', 'Food Waste Compost', 'Recycling']
+    weights = [landfill_weight, food_waste_weight, recycling_weight]
+    filtered_labels = [label for label, weight in zip(labels, weights) if weight > 0]
+    filtered_weights = [weight for weight in weights if weight > 0]
+    colors = ['#4CAF50', '#FF9800', '#2196F3']  # Green for Landfill, Orange for Food Waste, Blue for Recycling
+
+    # Create and save the pie chart
+    plt.figure(figsize=(6, 6))
+    plt.pie(
+        filtered_weights,
+        labels=filtered_labels,
+        autopct=lambda p: f'{p:.1f}%\n({p * sum(filtered_weights) / 100:.0f} lbs)',
+        startangle=140,
+        colors=colors[:len(filtered_labels)]
+    )
+
+    # Add a legend with weights
+    plt.legend(
+        [f"{label}: {weight} lbs" for label, weight in zip(filtered_labels, filtered_weights)],
+        title="Waste Type",
+        loc="center left",
+        bbox_to_anchor=(1, 0, 0.5, 1)
+    )
+
+    # Save the chart as an image
+    img = BytesIO()
+    plt.savefig(img, format='png', bbox_inches="tight")
+    plt.close()
+    img.seek(0)
+    plot_url = base64.b64encode(img.getvalue()).decode('utf8')
+
+    return render_template('pie_chart_report.html', plot_url=plot_url)
+    
+@app.route('/report/monthly-waste-graphs')
+def monthly_waste_graphs():
+    # Retrieve start and end dates from request arguments
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+
+    # Parse start and end dates for filtering
+    if start_date and end_date:
+        start_date = datetime.strptime(start_date, '%Y-%m-%d')
+        end_date = datetime.strptime(end_date, '%Y-%m-%d')
+    else:
+        flash("Please provide both start and end dates.", "danger")
+        return redirect(url_for('generate_report'))
+
+    figures = []
+
+    # 1. Recyclables by Type (Monthly)
+    recyclables_data = (
+        db_session.query(
+            func.strftime('%Y-%m', RecyclingRevenue.sale_date).label('month'),
+            RecyclingRevenue.material_type,
+            func.sum(RecyclingRevenue.weight).label('total_weight')
+        )
+        .filter(RecyclingRevenue.sale_date.between(start_date, end_date))
+        .group_by('month', RecyclingRevenue.material_type)
+        .order_by('month')
+        .all()
+    )
+
+    # Prepare data for plotting
+    recyclable_weights = {}
+    for month, material_type, weight in recyclables_data:
+        if material_type not in recyclable_weights:
+            recyclable_weights[material_type] = []
+        recyclable_weights[material_type].append((month, weight))
+
+    # Plot each recyclable type on a line chart
+    plt.figure(figsize=(10, 6))
+    for material_type, data in recyclable_weights.items():
+        months, weights = zip(*sorted(data))
+        plt.plot(months, weights, marker='o', label=material_type)
+    plt.xlabel("Month")
+    plt.ylabel("Weight (lbs)")
+    plt.xticks(rotation=45)
+    plt.legend(loc="upper left")
+    plt.tight_layout()
+    img = io.BytesIO()
+    plt.savefig(img, format='png', bbox_inches="tight")
+    plt.close()
+    img.seek(0)
+    figures.append(base64.b64encode(img.getvalue()).decode('utf8'))
+
+    # 2. Landfill, Compost, and Recycling Weights (Monthly)
+    landfill_data = (
+        db_session.query(
+            func.strftime('%Y-%m', LandfillExpense.landfill_date).label('month'),
+            func.sum(LandfillExpense.weight).label('total_weight')
+        )
+        .filter(LandfillExpense.landfill_date.between(start_date, end_date))
+        .group_by('month')
+        .order_by('month')
+        .all()
+    )
+
+    # Get dynamic columns from the waste_records table for materials like Food_Compost
+    inspector = inspect(engine)
+    waste_record_columns = [col['name'] for col in inspector.get_columns('waste_records') if col['name'] not in ('id', 'date_collected', 'user_id')]
+
+    # Create a dictionary to store compost data for each dynamic column
+    compost_data = {}
+    for column in waste_record_columns:
+        column_data = (
+            db_session.query(
+                func.strftime('%Y-%m', WasteRecord.date_collected).label('month'),
+                func.sum(text(column)).label('total_weight')
+            )
+            .filter(WasteRecord.date_collected.between(start_date, end_date))
+            .group_by('month')
+            .order_by('month')
+            .all()
+        )
+        compost_data[column] = dict(column_data)
+
+    recycling_data = (
+        db_session.query(
+            func.strftime('%Y-%m', RecyclingRevenue.sale_date).label('month'),
+            func.sum(RecyclingRevenue.weight).label('total_weight')
+        )
+        .filter(RecyclingRevenue.sale_date.between(start_date, end_date))
+        .group_by('month')
+        .order_by('month')
+        .all()
+    )
+
+    # Collect all unique months across landfill, compost, and recycling data
+    all_months = sorted({month for month, _ in landfill_data} |
+                        {month for compost_column in compost_data.values() for month, _ in compost_column.items()} |
+                        {month for month, _ in recycling_data})
+
+    landfill_weights = dict(landfill_data)
+    compost_weights = {month: sum(compost_data[column].get(month, 0) for column in waste_record_columns) for month in all_months}
+    recycling_weights = dict(recycling_data)
+
+    weights_landfill = [landfill_weights.get(month, 0) for month in all_months]
+    weights_compost = [compost_weights.get(month, 0) for month in all_months]
+    weights_recycling = [recycling_weights.get(month, 0) for month in all_months]
+
+    plt.figure(figsize=(10, 6))
+    plt.plot(all_months, weights_landfill, marker='o', color='g', label='Landfill')
+    plt.plot(all_months, weights_compost, marker='o', color='orange', label='Compost')
+    plt.plot(all_months, weights_recycling, marker='o', color='b', label='Recycling')
+    plt.xlabel("Month")
+    plt.ylabel("Weight (lbs)")
+    plt.xticks(rotation=45)
+    plt.legend(loc="upper left")
+    plt.tight_layout()
+    img = io.BytesIO()
+    plt.savefig(img, format='png', bbox_inches="tight")
+    plt.close()
+    img.seek(0)
+    figures.append(base64.b64encode(img.getvalue()).decode('utf8'))
+
+    # 3. Diversion Rate (Monthly)
+    diversion_data = []
+    for month in all_months:
+        total_waste = weights_landfill[all_months.index(month)] + weights_compost[all_months.index(month)] + weights_recycling[all_months.index(month)]
+        diverted_waste = weights_compost[all_months.index(month)] + weights_recycling[all_months.index(month)]
+        diversion_rate = (diverted_waste / total_waste * 100) if total_waste > 0 else 0
+        diversion_data.append((month, diversion_rate))
+
+    months_diversion, rates_diversion = zip(*diversion_data) if diversion_data else ([], [])
+    plt.figure(figsize=(10, 6))
+    plt.plot(months_diversion, rates_diversion, marker='o', color='purple', label='Diversion Rate (%)')
+    plt.xlabel("Month")
+    plt.ylabel("Diversion Rate (%)")
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    img = io.BytesIO()
+    plt.savefig(img, format='png', bbox_inches="tight")
+    plt.close()
+    img.seek(0)
+    figures.append(base64.b64encode(img.getvalue()).decode('utf8'))
+
+    # 4. Recycling Revenue (Monthly)
+    revenue_data = (
+        db_session.query(
+            func.strftime('%Y-%m', RecyclingRevenue.sale_date).label('month'),
+            func.sum(RecyclingRevenue.revenue).label('total_revenue')
+        )
+        .filter(RecyclingRevenue.sale_date.between(start_date, end_date))
+        .group_by('month')
+        .order_by('month')
+        .all()
+    )
+
+    months_revenue, total_revenue = zip(*sorted(revenue_data)) if revenue_data else ([], [])
+    plt.figure(figsize=(10, 6))
+    plt.plot(months_revenue, total_revenue, marker='o', color='cyan')
+    plt.xlabel("Month")
+    plt.ylabel("Revenue (USD)")
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    img = io.BytesIO()
+    plt.savefig(img, format='png', bbox_inches="tight")
+    plt.close()
+    img.seek(0)
+    figures.append(base64.b64encode(img.getvalue()).decode('utf8'))
+
+    return render_template('monthly_waste_graphs.html', figures=figures)
+
+
+def calculate_diversion_rate():
+    total_waste = (db_session.query(func.sum(LandfillExpense.weight)).scalar() or 0) + \
+                  (db_session.query(func.sum(WasteRecord.Food_Compost)).scalar() or 0) + \
+                  (db_session.query(func.sum(RecyclingRevenue.weight)).scalar() or 0)
+    diverted_waste = (db_session.query(func.sum(WasteRecord.Food_Compost)).scalar() or 0) + \
+                     (db_session.query(func.sum(RecyclingRevenue.weight)).scalar() or 0)
+
+    if total_waste == 0:
+        return 0
+    return (diverted_waste / total_waste) * 100
+
+#Summary Reports logic 
+# Route to display the Generate Report form
+
+
+@app.route('/generate-report', methods=['GET', 'POST'])
+def generate_report():
+    if request.method == 'POST':
+        start_date = request.form['start_date']
+        end_date = request.form['end_date']
+        return redirect(url_for('summary_table', start_date=start_date, end_date=end_date))
+    return render_template('generate_report.html')
+
+@app.route('/report/summary-table')
+def summary_table():
+    start_date_str = request.args.get('start_date')
+    end_date_str = request.args.get('end_date')
+
+    start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
+    end_date = datetime.strptime(end_date_str, '%Y-%m-%d')
+
+    summary_data, months = get_summary_data(start_date, end_date)
+
+    return render_template('summary_table.html', summary_data=summary_data, months=months)
+
+
+#get_summary_data
+def get_summary_data(start_date, end_date):
+    summary_data = {
+        'revenue': {}, 'landfill': {}, 'compost': {}, 'recycled': {}, 'diversion_rate': {}
+    }
+    
+    months = []
+    current = start_date
+    while current <= end_date:
+        month_str = current.strftime('%Y-%m')
+        months.append(month_str)
+        current = (current.replace(day=1) + timedelta(days=32)).replace(day=1)
+
+    # Recycling Revenue
+    for month in months:
+        revenue = db_session.query(func.sum(RecyclingRevenue.revenue)) \
+                            .filter(func.strftime('%Y-%m', RecyclingRevenue.sale_date) == month).scalar() or 0
+        summary_data['revenue'][month] = revenue
+
+    # Landfill and Compost
+    for month in months:
+        landfill_weight = db_session.query(func.sum(LandfillExpense.weight)) \
+                                    .filter(func.strftime('%Y-%m', LandfillExpense.landfill_date) == month).scalar() or 0
+        summary_data['landfill'][month] = landfill_weight
+
+    # Get dynamic columns for recyclable materials from `waste_records`
+    inspector = inspect(db_session.bind)
+    recyclable_columns = [col['name'] for col in inspector.get_columns('waste_records') if col['name'] not in ('id', 'date_collected', 'user_id')]
+
+    # Calculate weights for each dynamic recyclable column
+    for column in recyclable_columns:
+        column_data = {}
+        for month in months:
+            weight = db_session.query(func.sum(text(column))) \
+                               .filter(func.strftime('%Y-%m', WasteRecord.date_collected) == month).scalar() or 0
+            column_data[month] = weight
+        summary_data['recycled'][column] = column_data
+
+    # Calculate Totals
+    summary_data['totals'] = {
+        'revenue': sum(summary_data['revenue'].values()),
+        'landfill': sum(summary_data['landfill'].values()),
+        'recycled': sum(sum(month_data.values()) for month_data in summary_data['recycled'].values()),
+        'waste_generated': sum(summary_data['landfill'].values()) +
+                           sum(sum(month_data.values()) for month_data in summary_data['recycled'].values()),
+        'waste_diverted': sum(sum(month_data.values()) for month_data in summary_data['recycled'].values())
+    }
+
+    # Calculate Waste Diversion Rate (%) per month
+    for month in months:
+        total_generated = summary_data['landfill'].get(month, 0) + sum(
+            summary_data['recycled'][col].get(month, 0) for col in summary_data['recycled']
+        )
+        diverted = sum(summary_data['recycled'][col].get(month, 0) for col in summary_data['recycled'])
+        summary_data['diversion_rate'][month] = (diverted / total_generated * 100) if total_generated > 0 else 0
+    
+    return summary_data, months
+
+
+# Route to download landfill expenses as an Excel file
+@app.route('/download-landfill-expenses', methods=['GET'])
+def download_landfill_expenses():
+    # Get start and end dates from the query parameters
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+    
+    # Convert start and end dates to datetime objects
+    start_date = datetime.strptime(start_date, '%Y-%m-%d')
+    end_date = datetime.strptime(end_date, '%Y-%m-%d')
+    
+    # Query the landfill expenses within the date range
+    expenses = db_session.query(LandfillExpense).filter(
+        LandfillExpense.landfill_date.between(start_date, end_date)
+    ).all()
+    
+    # Prepare data for Excel
+    data = [{
+        'Landfill Date': exp.landfill_date,
+        'Weight (lbs)': exp.weight,
+        'Expense (USD)': exp.expense,
+        'Hauler': exp.hauler
+    } for exp in expenses]
+    
+    # Create a DataFrame and export to Excel
+    df = pd.DataFrame(data)
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        df.to_excel(writer, index=False, sheet_name='Landfill Expenses')
+    output.seek(0)
+    
+    # Send the Excel file as a download
+    return send_file(output, mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                     as_attachment=True, download_name="Landfill_Expenses_Report.xlsx")
+
+
+@app.route('/download-recycling-revenue', methods=['GET'])
+def download_recycling_revenue():
+    # Retrieve start and end dates from query parameters
+    start_date_str = request.args.get('start_date')
+    end_date_str = request.args.get('end_date')
+
+    # Validate the presence of start and end dates
+    if not start_date_str or not end_date_str:
+        flash("Please provide both start and end dates.", "danger")
+        return redirect(url_for('generate_report'))
+
+    try:
+        # Convert string dates to datetime objects
+        start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
+        end_date = datetime.strptime(end_date_str, '%Y-%m-%d')
+
+        # Query the database for records within the date range
+        revenues = db_session.query(RecyclingRevenue).filter(
+            RecyclingRevenue.sale_date.between(start_date, end_date)
+        ).all()
+
+        # Check if any records were found
+        if not revenues:
+            flash("No recycling revenue records found for the selected date range.", "warning")
+            return redirect(url_for('generate_report'))
+
+        # Prepare data for the Excel file
+        data = [{
+            'Sale Date': rev.sale_date.strftime('%Y-%m-%d'),
+            'Material Type': rev.material_type,
+            'Weight (lbs)': rev.weight,
+            'Revenue (USD)': rev.revenue,
+            'Buyer': rev.buyer
+        } for rev in revenues]
+
+        # Create a DataFrame and write it to an Excel file in memory
+        df = pd.DataFrame(data)
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+            df.to_excel(writer, index=False, sheet_name='Recycling Revenue')
+        output.seek(0)
+
+        # Send the Excel file as a downloadable attachment
+        return send_file(output, as_attachment=True, download_name='Recycling_Revenue_Report.xlsx',
+                         mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+
+    except Exception as e:
+        # Handle any exceptions that occur
+        flash(f"An error occurred while processing your request: {e}", "danger")
+        return redirect(url_for('generate_report'))
+    
+
+@app.route('/download-waste-records', methods=['GET'])
+def download_waste_records():
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+
+    if not start_date or not end_date:
+        flash("Please provide both start and end dates.", "danger")
+        return redirect(url_for('generate_report'))
+
+    try:
+        # Parse the provided dates
+        start_date = datetime.strptime(start_date, '%Y-%m-%d')
+        end_date = datetime.strptime(end_date, '%Y-%m-%d')
+
+        # Reflect the table to get dynamic columns
+        inspector = inspect(db_session.bind)
+        all_columns = [col['name'] for col in inspector.get_columns('waste_records')]
+
+        # Exclude 'user_id' and 'id' from the columns list
+        columns_to_include = [col for col in all_columns if col not in ('user_id', 'id')]
+
+        # Query the database for records within the date range with eager loading
+        records = db_session.query(WasteRecord).options(joinedload(WasteRecord.user)).filter(
+            WasteRecord.date_collected.between(start_date, end_date)
+        ).all()
+
+        if not records:
+            flash("No waste records found for the selected date range.", "warning")
+            return redirect(url_for('generate_report'))
+
+        # Prepare data for the Excel file
+        data = []
+        for rec in records:
+            # Access column values using the __table__ attribute
+            record_data = {}
+            for col in columns_to_include:
+                # Use the column name to get the column object
+                column_obj = WasteRecord.__table__.columns.get(col)
+                if column_obj is not None:
+                    # Retrieve the value of the column for the current record
+                    record_data[col] = getattr(rec, col, None)
+                else:
+                    record_data[col] = None
+            # Add user information if available
+            record_data['User'] = rec.user.username if rec.user else 'N/A'
+            data.append(record_data)
+
+        # Create a DataFrame and write it to an Excel file in memory
+        df = pd.DataFrame(data)
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+            df.to_excel(writer, index=False, sheet_name='Waste Records')
+        output.seek(0)
+
+        return send_file(output, as_attachment=True, download_name='Waste_Records_Report.xlsx',
+                         mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+
+    except ValueError as ve:
+        flash(f"Date parsing error: {ve}", "danger")
+        return redirect(url_for('generate_report'))
+    except Exception as e:
+        error_message = ''.join(traceback.format_exception(None, e, e.__traceback__))
+        flash(f"An unexpected error occurred: {error_message}", "danger")
+        return redirect(url_for('generate_report'))
 
 # Route for user logout
 @app.route('/logout')

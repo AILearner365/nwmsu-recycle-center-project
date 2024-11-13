@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2 class="text-center" style="margin-bottom: 2rem;">Waste by Type</h2>
+
+<!-- Centered div for the chart -->
+<div class="chart-container">
+    <img src="data:image/png;base64,{{ plot_url }}" alt="Waste Pie Chart">
+</div>
+
+<style>
+    /* Adjust the chart container with left margin to move it right */
+    .chart-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 100%;
+        margin-left: 10%; /* Adjust this percentage to move further right */
+    }
+
+    /* Ensure the image is centered and responsive */
+    img {
+        max-width: 51%;
+        height: auto;
+        display: block;
+    }
+</style>
+{% endblock %}

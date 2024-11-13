@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2 class="text-center" style="margin-top: 10px;">Monthly Waste Graphs</h2>
+
+<div class="container">
+    <!-- Graph 1: Recyclables by Type (Monthly) -->
+    <div class="graph-container">
+        <h3 class="graph-title">Monthly Recyclable Weights by Type</h3>
+        <img src="data:image/png;base64,{{ figures[0] }}" alt="Monthly Recyclable Weights by Type" class="graph-img">
+    </div>
+
+    <!-- Graph 2: Landfill, Compost, and Recycling Weights (Monthly) -->
+    <div class="graph-container">
+        <h3 class="graph-title">Monthly Weights of Landfill, Compost, and Recycling</h3>
+        <img src="data:image/png;base64,{{ figures[1] }}" alt="Monthly Weights of Landfill, Compost, and Recycling" class="graph-img">
+    </div>
+
+    <!-- Graph 3: Diversion Rate (Monthly) -->
+    <div class="graph-container">
+        <h3 class="graph-title">Monthly Diversion Rate</h3>
+        <img src="data:image/png;base64,{{ figures[2] }}" alt="Monthly Diversion Rate" class="graph-img">
+    </div>
+
+    <!-- Graph 4: Recycling Revenue (Monthly) -->
+    <div class="graph-container">
+        <h3 class="graph-title">Monthly Recycling Revenue</h3>
+        <img src="data:image/png;base64,{{ figures[3] }}" alt="Monthly Recycling Revenue" class="graph-img">
+    </div>
+</div>
+
+<style>
+    /* Container for the whole content */
+    .container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        margin-top: 10px; /* Reduced margin */
+        padding: 10px; /* Reduced padding */
+        gap: 20px; /* Reduced gap between graphs */
+        max-width: 1200px;
+    }
+
+    /* Styling each graph container */
+    .graph-container {
+        width: 90%;
+        max-width: 800px;
+        border: 1px solid #ddd;
+        border-radius: 10px;
+        padding: 15px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        background-color: #f9f9f9;
+        text-align: center;
+    }
+
+    /* Styling each graph image */
+    .graph-img {
+        width: 100%;
+        height: auto;
+        border-radius: 5px;
+    }
+
+    /* Title styling for the main title */
+    h2.text-center {
+        font-size: 28px;
+        font-weight: 700;
+        color: #333;
+        margin-bottom: 10px; /* Reduced bottom margin */
+    }
+
+    /* Title styling for each graph */
+    .graph-title {
+        font-size: 20px;
+        font-weight: 600;
+        margin-bottom: 10px; /* Reduced bottom margin for each title */
+        color: #555;
+    }
+</style>
+{% endblock %}
