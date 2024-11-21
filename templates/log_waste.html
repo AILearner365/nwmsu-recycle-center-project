@@ -5,7 +5,7 @@
     <h2 class="text-center mb-4">Compost & Recycling Waste Data</h2>
     <form method="GET" action="/log-waste" class="mb-4" id="date_form">
         <div class="mb-3">
-            <h5 class="mb-2">Select Date</h5>
+            <h5 class="mb-2" style="display: inline; background-color: yellow;">Select Date</h5>
             <div class="d-flex align-items-center" style="max-width: 250px;">
                 <input type="date" class="form-control" id="date_view" name="date_view" 
                        value="{{ request.args.get('date_view', '') or selected_date }}" required>
@@ -28,7 +28,7 @@
     </div>
     {% endif %}
     {% endwith %}
-    <form method="POST" action="/log-waste">
+    <form method="POST" action="/log-waste" onsubmit="return validateForm()">
         <input type="hidden" name="selected_date" value="{{ selected_date }}">
         <div class="table-responsive">
             <table class="table table-bordered table-hover">
@@ -50,8 +50,11 @@
                                 <td>{{ subcategory.name }}</td>
                                 <td>
                                    {% set field_name = (category.name + '_' + subcategory.name)|replace(' ', '_') %}
-                                   <input type="text" class="form-control" name="{{ field_name }}" 
-                                      value="{{ record|get_attribute(field_name) if record else '' }}">
+                                   <input type="text" class="form-control weight-input" name="{{ field_name }}" 
+                                      value="{{ record|get_attribute(field_name) if record else '0.0' }}">
+                                   <div class="invalid-feedback">
+                                       Weight must be a number.
+                                   </div>
                                 </td>
                             </tr>
                             {% endfor %}
@@ -71,6 +74,47 @@
     {% endif %}
 
     <script>
+        // Validation for numeric fields (Weight)
+        function isNumeric(value) {
+            return /^\d+(\.\d+)?$/.test(value); // Matches integers and decimals
+        }
+
+        function validateForm() {
+            let isValid = true;
+
+            const weightInputs = document.querySelectorAll('.weight-input');
+
+            weightInputs.forEach(input => {
+                if (!isNumeric(input.value)) {
+                    input.classList.add('is-invalid');
+                    isValid = false;
+                } else {
+                    input.classList.remove('is-invalid');
+                }
+            });
+
+            return isValid;
+        }
+
+        // Real-time validation
+        document.querySelectorAll('.weight-input').forEach(input => {
+            input.addEventListener('input', function () {
+                if (!isNumeric(this.value)) {
+                    this.classList.add('is-invalid');
+                } else {
+                    this.classList.remove('is-invalid');
+                }
+            });
+
+            // Set default value to 0.0 if the field is cleared
+            input.addEventListener('blur', function () {
+                if (this.value.trim() === '') {
+                    this.value = '0.0';
+                }
+            });
+        });
+
+        // Set max date for date selection
         const today = new Date().toISOString().split('T')[0];
         const dateInput = document.getElementById('date_view');
         dateInput.setAttribute('max', today);
@@ -120,6 +164,16 @@
         .fw-bold {
             font-weight: bold;
         }
+
+        .invalid-feedback {
+            font-size: 0.9rem; /* Smaller text for error message */
+            color: #dc3545; /* Consistent red color */
+        }
+
+        .form-control.is-invalid {
+            border-color: #dc3545; /* Maintain a consistent border style for invalid fields */
+        }
+        
     </style>
 </div>
 {% endblock %}
