@@ -636,6 +636,7 @@ def monthly_waste_graphs():
     figures = []
 
     # 1. Recyclables by Type (Monthly)
+    # 1. Recyclables by Type (Monthly)
     recyclables_data = (
         db_session.query(
             func.strftime('%Y-%m', RecyclingRevenue.sale_date).label('month'),
@@ -644,7 +645,6 @@ def monthly_waste_graphs():
         )
         .filter(RecyclingRevenue.sale_date.between(start_date, end_date))
         .group_by('month', RecyclingRevenue.material_type)
-        .order_by('month')
         .all()
     )
 
@@ -655,21 +655,30 @@ def monthly_waste_graphs():
             recyclable_weights[material_type] = []
         recyclable_weights[material_type].append((month, weight))
 
+    # Ensure months are sorted in ascending order
+    all_months = sorted({month for month, _, _ in recyclables_data})
+
     # Plot each recyclable type on a line chart
     plt.figure(figsize=(10, 6))
     for material_type, data in recyclable_weights.items():
-        months, weights = zip(*sorted(data))
-        plt.plot(months, weights, marker='o', label=material_type)
+        # Align data with sorted months
+        month_weight_dict = dict(data)
+        weights = [month_weight_dict.get(month, 0) for month in all_months]
+        plt.plot(all_months, weights, marker='o', label=material_type)
+
     plt.xlabel("Month")
     plt.ylabel("Weight (lbs)")
     plt.xticks(rotation=45)
     plt.legend(loc="upper left")
     plt.tight_layout()
+
+    # Save the plot to a buffer for rendering in the HTML
     img = io.BytesIO()
     plt.savefig(img, format='png', bbox_inches="tight")
     plt.close()
     img.seek(0)
     figures.append(base64.b64encode(img.getvalue()).decode('utf8'))
+
 
     # 2. Landfill, Compost, and Recycling Weights (Monthly)
     landfill_data = (
@@ -776,7 +785,7 @@ def monthly_waste_graphs():
 
     months_revenue, total_revenue = zip(*sorted(revenue_data)) if revenue_data else ([], [])
     plt.figure(figsize=(10, 6))
-    plt.plot(months_revenue, total_revenue, marker='o', color='cyan')
+    plt.plot(months_revenue, total_revenue, marker='o', color='g')
     plt.xlabel("Month")
     plt.ylabel("Revenue (USD)")
     plt.xticks(rotation=45)

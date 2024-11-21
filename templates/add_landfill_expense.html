@@ -2,12 +2,11 @@
 
 {% block content %}
 <div class="container mt-1 mb-3" style="max-width: 700px; margin: 0 auto; position: relative;">
-    <h2 class="text-center" style="margin-top: -10px; margin-bottom: 30px;">Add Landfill Expense</h2> <!-- Increased margin-bottom to add more space -->
+    <h2 class="text-center" style="margin-top: -10px; margin-bottom: 30px;">Add Landfill Expense</h2>
 
-    <!-- Flash message display as plain green text, positioned under the title -->
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
-        <div class="message-overlay" style="color: green;"> <!-- Green-colored message overlay -->
+        <div class="message-overlay" style="color: green;">
           {% for category, message in messages %}
             <p>{{ message }}</p>
           {% endfor %}
@@ -15,7 +14,7 @@
       {% endif %}
     {% endwith %}
 
-    <form method="POST" action="{{ url_for('add_landfill_expense') }}">
+    <form method="POST" action="{{ url_for('add_landfill_expense') }}" onsubmit="return validateForm()">
         <div class="mb-2">
             <label for="landfill_date" class="form-label fw-bold">Landfill Date</label>
             <input type="date" class="form-control" id="landfill_date" name="landfill_date" required value="{{ today_date }}">
@@ -23,22 +22,94 @@
         <div class="mb-2">
             <label for="weight" class="form-label fw-bold">Weight (lbs)</label>
             <input type="text" class="form-control" id="weight" name="weight" required>
+            <div class="invalid-feedback">Weight must be a number (no letters or special characters).</div>
         </div>
         <div class="mb-2">
             <label for="expense" class="form-label fw-bold">Expense (USD)</label>
             <input type="text" class="form-control" id="expense" name="expense" required>
+            <div class="invalid-feedback">Expense must be a number (no letters or special characters).</div>
         </div>
         <div class="mb-2">
             <label for="hauler" class="form-label fw-bold">Landfill/Hauler (Company Name)</label>
             <input type="text" class="form-control" id="hauler" name="hauler">
+            <div class="invalid-feedback">Company Name can only contain letters, numbers, and spaces (no special characters).</div>
         </div>
         <div class="d-flex justify-content-center mt-4">
             <button type="submit" class="btn btn-secondary btn-wide custom-button">Add Expense Record</button>
         </div>
     </form>
 
-    <!-- JavaScript to set the max date to today to prevent future date selection -->
     <script>
+        // Validation for numeric fields (Weight and Expense)
+        function isNumeric(value) {
+            return /^\d+(\.\d+)?$/.test(value); // Matches integers and decimals
+        }
+
+        // Validation for Company Name (letters, numbers, and spaces only)
+        function isValidCompanyName(name) {
+            return /^[a-zA-Z0-9\s]+$/.test(name);
+        }
+
+        function validateForm() {
+            let isValid = true;
+
+            const weight = document.getElementById('weight');
+            const expense = document.getElementById('expense');
+            const hauler = document.getElementById('hauler');
+
+            // Validate Weight
+            if (!isNumeric(weight.value)) {
+                weight.classList.add('is-invalid');
+                isValid = false;
+            } else {
+                weight.classList.remove('is-invalid');
+            }
+
+            // Validate Expense
+            if (!isNumeric(expense.value)) {
+                expense.classList.add('is-invalid');
+                isValid = false;
+            } else {
+                expense.classList.remove('is-invalid');
+            }
+
+            // Validate Hauler Name
+            if (!isValidCompanyName(hauler.value)) {
+                hauler.classList.add('is-invalid');
+                isValid = false;
+            } else {
+                hauler.classList.remove('is-invalid');
+            }
+
+            return isValid;
+        }
+
+        // Real-time validation
+        document.getElementById('weight').addEventListener('input', function() {
+            if (!isNumeric(this.value)) {
+                this.classList.add('is-invalid');
+            } else {
+                this.classList.remove('is-invalid');
+            }
+        });
+
+        document.getElementById('expense').addEventListener('input', function() {
+            if (!isNumeric(this.value)) {
+                this.classList.add('is-invalid');
+            } else {
+                this.classList.remove('is-invalid');
+            }
+        });
+
+        document.getElementById('hauler').addEventListener('input', function() {
+            if (!isValidCompanyName(this.value)) {
+                this.classList.add('is-invalid');
+            } else {
+                this.classList.remove('is-invalid');
+            }
+        });
+
+        // Set max date for landfill_date to today
         const today = new Date().toISOString().split('T')[0];
         document.getElementById('landfill_date').setAttribute('max', today);
     </script>
@@ -66,18 +137,25 @@
             margin-bottom: 1.5rem !important;
         }
 
-        /* Adjust the message alignment and add space between the header and message */
+        .invalid-feedback {
+            display: none;
+        }
+
+        .form-control.is-invalid ~ .invalid-feedback {
+            display: block;
+        }
+
         .message-overlay {
             position: absolute;
-            top: 35px; /* Positioning below the header */
-            left: 15px; /* Align with the left padding of the form fields */
-            width: calc(100% - 30px); /* Align width with form fields considering padding */
+            top: 35px;
+            left: 15px;
+            width: calc(100% - 30px);
             max-width: 690px;
             font-size: 1rem;
             font-weight: bold;
             z-index: 1000;
             text-align: left;
-            color: green; /* Set message color to green */
+            color: green;
         }
     </style>
 </div>
